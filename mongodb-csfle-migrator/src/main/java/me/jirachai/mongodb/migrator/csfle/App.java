@@ -61,6 +61,10 @@ class MigrateCommand implements Runnable {
         // MigrationDriver driver = new MigrationDriver(from, to);
         Configuration _config = Configuration.load(configPath);
 
+        MigrationDriver driver = new MigrationDriver(_config);
+        driver.setup();
+        driver.startMigration();
+
         System.out.println(_config.toString());
     }
 }

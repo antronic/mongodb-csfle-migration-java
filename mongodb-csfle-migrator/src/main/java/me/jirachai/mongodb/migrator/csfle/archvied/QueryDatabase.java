@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle;
+package me.jirachai.mongodb.migrator.csfle.archvied;
 
 import org.bson.Document;
 
@@ -10,6 +10,7 @@ import com.mongodb.client.MongoDatabase;
 
 import static com.mongodb.client.model.Filters.eq;
 
+@Deprecated
 public class QueryDatabase {
   public static void main(String[] args) {
     String uri = "mongodb://jirachaic:123321@localhost:27088/?directConnection=true";

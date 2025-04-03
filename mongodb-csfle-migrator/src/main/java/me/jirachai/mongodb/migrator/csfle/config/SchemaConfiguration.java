@@ -1,11 +1,10 @@
 package me.jirachai.mongodb.migrator.csfle.config;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.bson.Document;
 import org.bson.types.Binary;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
@@ -15,25 +14,30 @@ public class SchemaConfiguration {
    * @param namespace The namespace of the collection
    * @param schema The encrypt schema of the collection
    */
-  private Map</* namespace */ String, /* schema */ SchemaConfiguration.Schema> schemas = new HashMap<>();
+  private Map</* namespace */ String, CollectionSchema> schemas;
+
   /**
    * The schema configuration for the MongoDB Encryption Schema
    */
   @Data
-  public class Schema {
-    private String namespace;
+  public class CollectionSchema {
     private final String bsonType = "object";
     private EncryptMetadata encryptMetadata;
-    private Map<String, Document> properties = new HashMap<String, Document>();
+    private Map<String, Document> properties = new HashMap<>();
   }
 
   @Data
     public static class EncryptMetadata {
-      private List<KeyId> keyId = new ArrayList<>();
+      /**
+       * Key ID will retreive by MongoDB Driver
+       */
+      @JsonProperty("keyId")
+      private KeyId[] keyId;
     }
 
     @Data
     public static class KeyId {
+      @JsonProperty("$binary")
       private Binary $binary;
     }
 

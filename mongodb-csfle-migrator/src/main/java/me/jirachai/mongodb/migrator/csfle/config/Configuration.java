@@ -11,22 +11,10 @@ import lombok.Data;
 public class Configuration {
   private String sourceMongoDBUri;
   private String targetMongoDBUri;
-  private String sourceDatabase;
-  private String targetDatabase;
+  private String[] sourceDatabases;
 
   private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfig encryption = new EncryptionConfig();
-  private SchemaConfiguration schemaConfig = new SchemaConfiguration();
-
-  private Map<String, CollectionConfig> collections = new HashMap<>();
-
-  public static class CollectionConfig {
-    private String sourceCollection;
-    private String targetCollection;
-    private String schemaName;
-    private String keyId;
-    private String algorithm = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic";
-  }
 
   @Data
   public static class WorkerConfig {
@@ -80,10 +68,9 @@ public class Configuration {
       defaultConfig.setSourceMongoDBUri(userConfig.getSourceMongoDBUri());
     if (userConfig.getTargetMongoDBUri() != null)
       defaultConfig.setTargetMongoDBUri(userConfig.getTargetMongoDBUri());
-    if (userConfig.getSourceDatabase() != null)
-      defaultConfig.setSourceDatabase(userConfig.getSourceDatabase());
-    if (userConfig.getTargetDatabase() != null)
-      defaultConfig.setTargetDatabase(userConfig.getTargetDatabase());
+    if (userConfig.getSourceDatabases() != null)
+      defaultConfig.setSourceDatabases(userConfig.getSourceDatabases());
+
     // if (userConfig.getCollectionPrefix() != null)
     //   defaultConfig.setCollectionPrefix(userConfig.getCollectionPrefix());
 
@@ -129,11 +116,8 @@ public class Configuration {
     if (config.getTargetMongoDBUri() == null) {
       throw new IllegalArgumentException("targetMongoDBUri is required");
     }
-    if (config.getSourceDatabase() == null) {
-      throw new IllegalArgumentException("sourceDatabase is required");
-    }
-    if (config.getTargetDatabase() == null) {
-      throw new IllegalArgumentException("targetDatabase is required");
+    if (config.getSourceDatabases() == null) {
+      throw new IllegalArgumentException("sourceDatabases is required");
     }
     if (config.getEncryption().getMasterKeyFilePath() == null) {
       throw new IllegalArgumentException("encryption.masterKeyFilePath is required");

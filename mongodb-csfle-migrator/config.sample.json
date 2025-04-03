@@ -1,0 +1,9 @@
+{
+  "sourceMongoDBUri": "mongodb://localhost:27019",
+  "sourceDatabases": ["app"],
+  "targetMongoDBUri": "mongodb://<username>:<password>@localhost:27020",
+  "encryption": {
+    "masterKeyFilePath": "./master-key.txt",
+    "cryptSharedLibPath": "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib"
+  }
+}

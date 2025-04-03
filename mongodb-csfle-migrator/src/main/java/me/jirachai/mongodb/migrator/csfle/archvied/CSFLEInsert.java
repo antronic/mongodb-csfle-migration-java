@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.csfle;
+package me.jirachai.mongodb.migrator.csfle.archvied;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +24,7 @@ import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
 
+@Deprecated
 public class CSFLEInsert {
   //
   // MongoDB connection string

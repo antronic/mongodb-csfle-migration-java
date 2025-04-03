@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.csfle;
+package me.jirachai.mongodb.migrator.csfle.archvied;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -29,6 +29,7 @@ import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
 
+@Deprecated
 public class CSFLEInsertLocal {
   //
   // MongoDB connection string

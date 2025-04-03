@@ -5,11 +5,11 @@ me/jirachai/mongodb/migrator/csfle/config/ConfigLoader.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$EncryptField.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration.class
 me/jirachai/mongodb/migrator/csfle/csfle/CSFLEInsertLocal.class
-me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$Schema.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$Encrypt.class
-me/jirachai/mongodb/migrator/csfle/config/Configuration$CollectionConfig.class
+me/jirachai/mongodb/migrator/csfle/service/MongoDBService.class
 me/jirachai/mongodb/migrator/csfle/MigrationDriver.class
 me/jirachai/mongodb/migrator/csfle/worker/MigrationTargetWriter.class
+me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$CollectionSchema.class
 me/jirachai/mongodb/migrator/csfle/worker/MigrationVerifier.class
 me/jirachai/mongodb/migrator/csfle/csfle/CSFLEInsert.class
 me/jirachai/mongodb/migrator/csfle/MigrateCommand.class
