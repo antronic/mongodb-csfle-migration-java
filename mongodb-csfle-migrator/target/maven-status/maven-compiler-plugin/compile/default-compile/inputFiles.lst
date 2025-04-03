@@ -1,4 +1,11 @@
-/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/App.java
-/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/CSFLEInsert.java
-/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/CSFLEInsertLocal.java
-/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/QueryDatabase.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/App.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/MigrationDriver.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/QueryDatabase.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/ConfigLoader.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/Configuration.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/csfle/CSFLEInsert.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/csfle/CSFLEInsertLocal.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/worker/MigrationSourceReader.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/worker/MigrationTargetWriter.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/worker/MigrationVerifier.java

@@ -67,4 +67,10 @@ public class MigrationDriver {
         sourceClient.close();
         targetClient.close();
     }
+
+    private void dryRun() {
+        Configuration _config = Configuration.load("config.json");
+
+        System.out.println(_config.toString());
+    }
 }
