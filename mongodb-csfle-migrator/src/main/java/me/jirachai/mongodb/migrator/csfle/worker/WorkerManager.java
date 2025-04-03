@@ -62,14 +62,42 @@ public class WorkerManager {
    * @throws InterruptedException if the task submission is interrupted
    */
   public void submitTask(String collection, Runnable task) {
-    try {
-      WorkerTask workerTask = new WorkerTask(collection, task);
-      taskQueue.offer(workerTask, 1, TimeUnit.SECONDS);
-      processQueue();
-    } catch (InterruptedException e) {
-      logger.error("Failed to submit task for collection {}: {}", collection, e.getMessage());
-      Thread.currentThread().interrupt();
+    WorkerTask workerTask = new WorkerTask(collection, task);
+    int retryCount = 0;
+    int maxRetries = 3; // Configurable
+    long retryDelay = 1000; // 1 second delay between retries
+
+    // Retry logic for task submission
+    // This is a simple retry mechanism. In a real-world scenario, you might want to use
+    // while (retryCount < maxRetries) {
+
+    // Retry until the task is successfully added to the queue or interrupted
+    while (!Thread.currentThread().isInterrupted()) {
+      try {
+        boolean offered = taskQueue.offer(workerTask, 1, TimeUnit.SECONDS);
+        if (offered) {
+          logger.debug("Task submitted for collection: {}", collection);
+          processQueue();
+          return;
+        }
+
+        retryCount++;
+        if (retryCount < maxRetries) {
+          logger.warn("Queue full for collection {}, retry {}/{} after {} ms", collection,
+              retryCount, maxRetries, retryDelay);
+          Thread.sleep(retryDelay);
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        logger.warn("Task submission interrupted for collection: {}", collection);
+        throw new RuntimeException("Task submission interrupted for collection: " + collection, e);
+      }
     }
+
+    // If we get here, all retries failed
+    throw new RuntimeException(
+        String.format("Failed to submit task for collection %s after %d retries - queue full",
+            collection, maxRetries));
   }
 
   /**
@@ -102,8 +130,9 @@ public class WorkerManager {
    * @return workerId of the assigned worker, or null if none available
    */
   private String assignWorker() {
-    return workerStatus.entrySet().stream().filter(entry -> !entry.getValue().isBusy())
-        .map(Map.Entry::getKey).findFirst().orElse(null);
+    return workerStatus.entrySet().stream()
+      .filter(entry -> !entry.getValue().isBusy())
+      .map(Map.Entry::getKey).findFirst().orElse(null);
   }
 
   /**
