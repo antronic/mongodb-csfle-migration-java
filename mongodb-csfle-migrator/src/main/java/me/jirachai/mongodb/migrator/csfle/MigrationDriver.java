@@ -1,9 +1,9 @@
-package me.jirachai.mongodb;
+package me.jirachai.mongodb.migrator.csfle;
 
-import me.jirachai.mongodb.config.Configuration;
-import me.jirachai.mongodb.worker.MigrationSourceReader;
-import me.jirachai.mongodb.worker.MigrationTargetWriter;
-import me.jirachai.mongodb.worker.MigrationVerifier;
+import me.jirachai.mongodb.migrator.csfle.config.Configuration;
+import me.jirachai.mongodb.migrator.csfle.worker.MigrationSourceReader;
+import me.jirachai.mongodb.migrator.csfle.worker.MigrationTargetWriter;
+import me.jirachai.mongodb.migrator.csfle.worker.MigrationVerifier;
 import com.mongodb.client.MongoClient;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

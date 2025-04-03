@@ -140,7 +140,7 @@
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <configuration>
-            <mainClass>me.jirachai.mongodb.CSFLEInsert</mainClass>
+            <mainClass>me.jirachai.mongodb.migrator.csfle.CSFLEInsert</mainClass>
             <systemProperties>
               <systemProperty>
                 <key>javax.net.ssl.keyStore</key>

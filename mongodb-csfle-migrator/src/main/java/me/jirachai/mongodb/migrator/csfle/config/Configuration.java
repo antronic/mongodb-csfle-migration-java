@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.config;
+package me.jirachai.mongodb.migrator.csfle.config;
 
 import lombok.Data;
 
