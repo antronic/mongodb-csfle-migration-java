@@ -1,10 +1,9 @@
 package me.jirachai.mongodb.migrator.csfle.config;
 
-import java.util.HashMap;
 import java.util.Map;
 import org.bson.Document;
-import org.bson.types.Binary;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 
 @Data
@@ -14,41 +13,48 @@ public class SchemaConfiguration {
    * @param namespace The namespace of the collection
    * @param schema The encrypt schema of the collection
    */
-  private Map</* namespace */ String, CollectionSchema> schemas;
+  private Map</* namespace */ String, Object> schemas;
 
-  /**
-   * The schema configuration for the MongoDB Encryption Schema
-   */
-  @Data
-  public class CollectionSchema {
-    private final String bsonType = "object";
-    private EncryptMetadata encryptMetadata;
-    private Map<String, Document> properties = new HashMap<>();
+  public Object getSchema(String namespace) {
+    return schemas.get(namespace);
   }
 
-  @Data
-    public static class EncryptMetadata {
-      /**
-       * Key ID will retreive by MongoDB Driver
-       */
-      @JsonProperty("keyId")
-      private KeyId[] keyId;
-    }
+  public Document getSchemaAsDocument(String namespace) {
+    Object schema = schemas.get(namespace);
 
-    @Data
-    public static class KeyId {
-      @JsonProperty("$binary")
-      private Binary $binary;
-    }
+    if (schema instanceof Map) {
+      // If the schema is a map, convert it to a Document
+      ObjectMapper mapper = new ObjectMapper();
+      Map<String, Object> schemaMap = mapper.convertValue(
+        schema,
+        new TypeReference<Map<String, Object>>() {}
+      );
 
-    @Data
-    public static class EncryptField {
-      private Encrypt encrypt;
+      return new Document(namespace, new Document(schemaMap));
+    } else {
+      throw new IllegalArgumentException("Invalid schema type for namespace: " + namespace);
     }
+    // if (schema instanceof String) {
+    //   // If the schema is a string, parse it as a JSON string
+    //   try {
+    //     return mapper.readValue((String) schema, Document.class);
+    //   } catch (Exception e) {
+    //     throw new IllegalArgumentException("Invalid schema format for namespace: " + namespace, e);
+    //   }
+    // } else if (schema instanceof Map) {
+    //   // If the schema is a map, convert it to a Document
+    //   return new Document((Map<String, Object>) schema);
+    // } else if (schema instanceof Document) {
+    //   // If the schema is already a Document, return it directly
+    //   return (Document) schema;
+    // }
 
-    @Data
-    public static class Encrypt {
-      private String bsonType;
-      private String algorithm = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic";
-    }
+    // if (schema instanceof Document) {
+    //   return (Document) schema;
+    // } else if (schema instanceof Binary) {
+    //   return Document.parse(((Binary) schema).getData());
+    // } else {
+    //   throw new IllegalArgumentException("Invalid schema type for namespace: " + namespace);
+    // }
+  }
 }

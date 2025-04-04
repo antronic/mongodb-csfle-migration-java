@@ -1,7 +1,11 @@
 package me.jirachai.mongodb.migrator.csfle;
 
+import java.util.List;
+import java.util.Map;
+import org.bson.Document;
 import lombok.Getter;
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
+import me.jirachai.mongodb.migrator.csfle.config.SchemaConfiguration;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -60,11 +64,20 @@ class MigrateCommand implements Runnable {
 
         // MigrationDriver driver = new MigrationDriver(from, to);
         Configuration _config = Configuration.load(configPath);
+        _config
+            .loadMigrateTarget("./migrate-target.json")
+            .loadSchema("./schema.json");
+        // _config.setNamespaces(ns);
+        // SchemaConfiguration schema = _config.loadSchema("./schema.json");
+
+        // System.out.println(schema.getSchemas());
+        // System.out.println((_config.getSchema().getSchemaAsDocument("app.people")));
+        // System.out.println(_config.getMigrateTarget());
 
         MigrationDriver driver = new MigrationDriver(_config);
         driver.setup();
         driver.startMigration();
 
-        System.out.println(_config.toString());
+        // System.out.println(_config.toString());
     }
 }

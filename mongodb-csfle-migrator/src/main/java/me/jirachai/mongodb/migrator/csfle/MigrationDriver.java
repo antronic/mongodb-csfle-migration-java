@@ -2,19 +2,12 @@ package me.jirachai.mongodb.migrator.csfle;
 
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
 import me.jirachai.mongodb.migrator.csfle.service.MongoDBService;
-import me.jirachai.mongodb.migrator.csfle.worker.MigrationSourceReader;
-import me.jirachai.mongodb.migrator.csfle.worker.MigrationTargetWriter;
-import me.jirachai.mongodb.migrator.csfle.worker.MigrationVerifier;
+import me.jirachai.mongodb.migrator.csfle.worker.MigrationManager;
 import me.jirachai.mongodb.migrator.csfle.worker.WorkerManager;
-import com.mongodb.client.MongoClient;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +39,16 @@ public class MigrationDriver {
                     logger.info("Submitting migration task for {}.{}", dbName, collectionName);
 
                     workerManager.submitTask(collectionName, () -> {
-                        MigrationSourceReader reader = new MigrationSourceReader();
-                        reader.setup(sourceService.getClient(), dbName, collectionName);
-                        reader.read();
-                        // Add write and verify logic here
+                        MigrationManager migrationManager = new MigrationManager(
+                            this.config,
+                            sourceService.getClient(),
+                            targetService.getClient(),
+                            dbName,
+                            collectionName
+                        );
+
+                        migrationManager.initialize();
+                        migrationManager.run();
                     });
                 }
             }
@@ -77,12 +76,27 @@ public class MigrationDriver {
         return this.collectionsMap.get(dbName);
     }
 
+    // private List<String, List<String>> getCollection(String)
+
     public void setup() {
         // Initialize source and target MongoDB clients
         sourceService = new MongoDBService(config.getSourceMongoDBUri());
         targetService = new MongoDBService(config.getTargetMongoDBUri());
 
-        this.getCollectionsToMigrate();
+        // this.getCollectionsToMigrate();
+        Map<String, List<String>> dbs = this.config.getMigrateTarget();
+        if (dbs != null) {
+            for (Map.Entry<String, List<String>> entry : dbs.entrySet()) {
+                String dbName = entry.getKey();
+                List<String> collections = entry.getValue();
+
+                if (collections != null && !collections.isEmpty()) {
+                    this.collectionsMap.put(dbName, collections);
+                }
+            }
+        } else {
+            this.getCollectionsToMigrate();
+        }
     }
 
     private void shutdown() {

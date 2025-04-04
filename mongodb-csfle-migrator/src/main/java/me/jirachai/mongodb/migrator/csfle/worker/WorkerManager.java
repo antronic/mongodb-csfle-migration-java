@@ -67,6 +67,8 @@ public class WorkerManager {
     int maxRetries = 3; // Configurable
     long retryDelay = 1000; // 1 second delay between retries
 
+    System.out.println("Submitting task for collection: " + collection);
+
     // Retry logic for task submission
     // This is a simple retry mechanism. In a real-world scenario, you might want to use
     // while (retryCount < maxRetries) {

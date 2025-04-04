@@ -2,7 +2,9 @@ package me.jirachai.mongodb.migrator.csfle.config;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -16,6 +18,13 @@ public class Configuration {
   private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfig encryption = new EncryptionConfig();
 
+  private SchemaConfiguration schema;
+  private String schemaFilePath = "schema.json";
+  // private String collectionPrefix = "migrated_";
+
+  private Map<String, List<String>> migrateTarget;
+  private String migrateTargetFilePath = "migrate-target.json";
+
   @Data
   public static class WorkerConfig {
     private int maxThreads = 10;
@@ -27,7 +36,7 @@ public class Configuration {
   }
 
   @Data
-  public static class EncryptionConfig {
+  public class EncryptionConfig {
     private String keyVaultDb = "encryption";
     private String keyVaultColl = "__keyVault";
 
@@ -124,6 +133,66 @@ public class Configuration {
     }
     if (config.getEncryption().getCryptSharedLibPath() == null) {
       throw new IllegalArgumentException("encryption.cryptSharedLibPath is required");
+    }
+  }
+
+  public Configuration loadSchema() {
+    return loadSchema(this.schemaFilePath);
+  }
+
+  public Configuration loadSchema(String schemaPath) {
+    ObjectMapper mapper =
+        new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    try {
+      // If config file provided, merge with defaults
+      if (schemaPath != null) {
+        Map<String, Object> schemaJson = mapper.readValue(
+          new File(schemaPath),
+          new TypeReference<Map<String, Object>>() {}
+        );
+
+        SchemaConfiguration schemaConfig = new SchemaConfiguration();
+        schemaConfig.setSchemas(schemaJson);
+
+        this.schema = schemaConfig;
+      }
+
+      return this;
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load configuration", e);
+    }
+  }
+
+  public static String getSchemaForCollection(String collectionName) {
+    // Implement the logic to get the schema for a specific collection
+    // This could involve using the MongoDB Java driver to query the collection.
+    return null;
+  }
+
+  public Configuration loadMigrateTarget() {
+    return loadMigrateTarget(this.migrateTargetFilePath);
+  }
+
+  public Configuration loadMigrateTarget(String nsPath) {
+    ObjectMapper mapper =
+        new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    try {
+      // If config file provided, merge with defaults
+      if (nsPath != null) {
+        Map<String, List<String>> userMigrateTarget =
+          mapper.readValue(
+            new File(nsPath),
+            new TypeReference<Map<String, List<String>>>() {}
+          );
+
+        this.migrateTarget = userMigrateTarget;
+      }
+      return this;
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load configuration", e);
     }
   }
 }

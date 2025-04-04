@@ -1,0 +1,6 @@
+{
+  "database-1": [
+    "collection-1", "collection-2"
+  ],
+  "database-2": [ "collection-1" ]
+}
