@@ -10,6 +10,7 @@ import me.jirachai.mongodb.migrator.csfle.config.Configuration;
 public class MigrationManager {
   private static final Logger logger =
       org.slf4j.LoggerFactory.getLogger(MigrationManager.class);
+  private final WorkerManager workerManager;
   private final MigrationSourceReader sourceReader;
   private final MigrationTargetWriter targetWriter;
 
@@ -31,6 +32,7 @@ public class MigrationManager {
       WorkerManager workerManager,
       Configuration configuration
       ) {
+    this.workerManager = workerManager;
     this.configuration = configuration;
     this.sourceReader = new MigrationSourceReader();
     this.targetWriter = new MigrationTargetWriter();
@@ -80,20 +82,27 @@ public class MigrationManager {
       // Read data from the source database and collection
       sourceReader.setSkip(currentBatchIndex * batchSize);
       sourceReader.setLimit(currentBatchSize);
-      // Read data from the source
-      List<Document> docs = sourceReader.read().into(new ArrayList<>());
 
-      logger.info("Target database: " + sourceDatabase + ", collection: " + sourceCollection);
-      logger.info("Read " + docs.size() + " documents.");
-
-      // for (Document doc : docs) {
-      //   // Process each document
-      //   logger.info(doc.toJson());
-      // }
-
-      // Write data to the target
-      targetWriter.writeBatch(docs);
+      processBatch();
     }
+  }
+
+  private void processBatch() {
+    // Read data from the source
+    List<Document> docs = sourceReader.read().into(new ArrayList<>());
+
+    logger.info("Target database: " + sourceDatabase + ", collection: " + sourceCollection);
+    logger.info("Read " + docs.size() + " documents.");
+
+    // Print all documents
+
+    // for (Document doc : docs) {
+    //   // Process each document
+    //   logger.info(doc.toJson());
+    // }
+
+    // Write data to the target
+    targetWriter.writeBatch(docs);
   }
 
   public MigrationManager initialize() {

@@ -33,7 +33,7 @@ public class MigrationTargetWriter {
     // using the provided MongoClient instance.
 
     // Print writing
-    logger.info("Writing batch of documents to target database " + targetDatabase + " and collection " + targetCollection +  "...");
+    logger.info("Writing batch of {} documents to {}.{}", documents.size(), targetDatabase, targetCollection);
 
     this.mongoClient
       .getDatabase(targetDatabase)

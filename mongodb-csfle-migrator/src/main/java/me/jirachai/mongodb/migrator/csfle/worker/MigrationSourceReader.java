@@ -45,6 +45,8 @@ public class MigrationSourceReader {
     // and return them as a list or stream.
     // This could involve using the MongoDB Java driver to query the collection.
 
+    // logger.info("Skipping {} documents and limiting to {} documents", skip, limit);
+
     FindIterable<Document> docs = mongoClient
       .getDatabase(sourceDatabase)
       .getCollection(sourceCollection)

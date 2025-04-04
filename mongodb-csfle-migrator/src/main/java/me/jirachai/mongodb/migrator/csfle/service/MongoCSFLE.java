@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
@@ -95,12 +96,12 @@ public class MongoCSFLE {
 
     this.autoEncryptionSettings =
         AutoEncryptionSettings.builder()
-            .keyVaultMongoClientSettings(
-                MongoClientSettings.builder()
-                    .applyConnectionString(
-                      new ConnectionString(this.mongoUri)
-                    )
-                    .build())
+            // .keyVaultMongoClientSettings(
+            //     MongoClientSettings.builder()
+            //         .applyConnectionString(
+            //           new ConnectionString(this.mongoUri)
+            //         )
+            //         .build())
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
             .schemaMap(schemaMap)
@@ -110,6 +111,16 @@ public class MongoCSFLE {
     this.mongoClientSettings =
         MongoClientSettings.builder()
             .applyConnectionString(new ConnectionString(this.mongoUri))
+            .applyToConnectionPoolSettings(
+                builder -> {
+                  builder.minSize(0);
+                  builder.maxSize(10);
+                })
+            .applyToSocketSettings(
+                builder -> {
+                  builder.connectTimeout(10, TimeUnit.SECONDS);
+                  builder.readTimeout(10, TimeUnit.SECONDS);
+                })
             .autoEncryptionSettings(autoEncryptionSettings)
             .build();
   }
@@ -233,8 +244,9 @@ public class MongoCSFLE {
     switch (this.kmsProviderEnum) {
       case LOCAL:
         // Set up the KMIP provider configuration
-        byte[] localMasterKeyRead = readMasterKeyFile();
-        this.providerDetails.put("key", localMasterKeyRead);
+          byte[] localMasterKeyRead = readMasterKeyFile();
+          this.providerDetails.put("key", localMasterKeyRead);
+          this.kmsProviders.put(this.kmsProvider, this.providerDetails);
         break;
       // case AWS:
       //   this.providerDetails.put("accessKeyId", "your-access-key-id");
