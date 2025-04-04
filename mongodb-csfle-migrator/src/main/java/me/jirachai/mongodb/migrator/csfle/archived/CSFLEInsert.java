@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import javax.net.ssl.SSLContext;
+// import javax.net.ssl.SSLContext;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
@@ -52,7 +52,7 @@ public class CSFLEInsert {
   private void setupClientEncryption() {
     // Create the ClientEncryption object
     //
-    Map<String, SSLContext> sslContextMap = new HashMap<>();
+    // Map<String, SSLContext> sslContextMap = new HashMap<>();
     // Set up the SSL context for the KMIP provider
     // sslContextMap.put(kmsProvider, SSLContext.getDefault());
 

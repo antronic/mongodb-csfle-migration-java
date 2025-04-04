@@ -5,5 +5,5 @@
     "titleBar.activeForeground": "#FDFBF9",
     "editor.background": "#070707",
   },
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "automatic"
 }

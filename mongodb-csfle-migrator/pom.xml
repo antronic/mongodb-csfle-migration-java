@@ -125,10 +125,6 @@
           <version>3.3.0</version>
         </plugin>
         <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>3.4.2</version>
-        </plugin>
-        <plugin>
           <artifactId>maven-install-plugin</artifactId>
           <version>3.1.2</version>
         </plugin>
@@ -145,41 +141,36 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.6.1</version>
         </plugin>
-
-        <!-- <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>exec-maven-plugin</artifactId>
-          <configuration>
-            <mainClass>me.jirachai.mongodb.migrator.csfle.CSFLEInsert</mainClass>
-            <systemProperties>
-              <systemProperty>
-                <key>javax.net.ssl.keyStore</key>
-                <value>/absolute/path/to/client.p12</value>
-              </systemProperty>
-              <systemProperty>
-                <key>javax.net.ssl.keyStorePassword</key>
-                <value>your-password</value>
-              </systemProperty>
-              <systemProperty>
-                <key>javax.net.ssl.keyStoreType</key>
-                <value>PKCS12</value>
-              </systemProperty>
-              <systemProperty>
-                <key>javax.net.ssl.trustStore</key>
-                <value>/absolute/path/to/truststore.jks</value>
-              </systemProperty>
-              <systemProperty>
-                <key>javax.net.ssl.trustStorePassword</key>
-                <value>your-password</value>
-              </systemProperty>
-              <systemProperty>
-                <key>javax.net.ssl.trustStoreType</key>
-                <value>JKS</value>
-              </systemProperty>
-            </systemProperties>
-          </configuration>
-        </plugin> -->
       </plugins>
     </pluginManagement>
+    <plugins>
+      <!-- Add this section outside of pluginManagement -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>me.jirachai.mongodb.migrator.csfle.App</mainClass>
+            </manifest>
+          </archive>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <finalName>MongoDBCSFLEMigrator/MongoDBCSFLEMigrator-${project.version}</finalName>
+          <appendAssemblyId>true</appendAssemblyId>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 </project>
