@@ -1,13 +1,12 @@
 me/jirachai/mongodb/migrator/csfle/config/Configuration$2.class
+me/jirachai/mongodb/migrator/csfle/service/MongoCSFLE$KmsProvider.class
 me/jirachai/mongodb/migrator/csfle/worker/MigrationSourceReader.class
 me/jirachai/mongodb/migrator/csfle/config/Configuration$WorkerConfig.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$1.class
 me/jirachai/mongodb/migrator/csfle/worker/WorkerManager$WorkerTask.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration.class
+me/jirachai/mongodb/migrator/csfle/GenerateDekIdCommand.class
 me/jirachai/mongodb/migrator/csfle/config/Configuration$1.class
-me/jirachai/mongodb/migrator/csfle/archvied/CSFLEInsert.class
-me/jirachai/mongodb/migrator/csfle/archvied/CSFLEInsertLocal.class
-me/jirachai/mongodb/migrator/csfle/archvied/QueryDatabase.class
 me/jirachai/mongodb/migrator/csfle/service/MongoCSFLE.class
 me/jirachai/mongodb/migrator/csfle/service/MongoDBService.class
 me/jirachai/mongodb/migrator/csfle/MigrationDriver.class
@@ -17,6 +16,9 @@ me/jirachai/mongodb/migrator/csfle/MigrateCommand.class
 me/jirachai/mongodb/migrator/csfle/worker/WorkerManager$WorkerStatus.class
 me/jirachai/mongodb/migrator/csfle/App.class
 me/jirachai/mongodb/migrator/csfle/config/Configuration.class
+me/jirachai/mongodb/migrator/csfle/archived/CSFLEInsertLocal.class
 me/jirachai/mongodb/migrator/csfle/config/Configuration$EncryptionConfig.class
 me/jirachai/mongodb/migrator/csfle/worker/WorkerManager.class
+me/jirachai/mongodb/migrator/csfle/archived/QueryDatabase.class
 me/jirachai/mongodb/migrator/csfle/worker/MigrationManager.class
+me/jirachai/mongodb/migrator/csfle/archived/CSFLEInsert.class

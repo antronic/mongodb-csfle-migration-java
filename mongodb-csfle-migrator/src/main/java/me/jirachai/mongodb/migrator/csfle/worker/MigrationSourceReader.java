@@ -1,13 +1,14 @@
 package me.jirachai.mongodb.migrator.csfle.worker;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import lombok.Setter;
 
 public class MigrationSourceReader {
+  private static final Logger logger = LoggerFactory.getLogger(MigrationSourceReader.class);
   private MongoClient mongoClient;
   private String sourceDatabase;
   private String sourceCollection;

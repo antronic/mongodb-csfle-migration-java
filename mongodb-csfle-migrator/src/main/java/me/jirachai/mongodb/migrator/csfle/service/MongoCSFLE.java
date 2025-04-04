@@ -5,8 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +13,7 @@ import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.Document;
+import org.slf4j.Logger;
 import com.mongodb.AutoEncryptionSettings;
 import com.mongodb.ClientEncryptionSettings;
 import com.mongodb.ConnectionString;
@@ -33,9 +32,15 @@ import me.jirachai.mongodb.migrator.csfle.config.SchemaConfiguration;
 import me.jirachai.mongodb.migrator.csfle.config.Configuration.EncryptionConfig;
 
 public class MongoCSFLE {
+  private final Logger logger = org.slf4j.LoggerFactory.getLogger(MongoCSFLE.class);
+
   private final Configuration configuration;
-  private String masterKeyFilePath;
   private String cryptSharedLibPath = "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib";
+  //
+  // KMS Provider: local
+  private String masterKeyFilePath;
+  // KMS Provider: KMIP
+  private String kmsEndpoint;
 
   private String mongoUri;
   @Getter
@@ -53,6 +58,8 @@ public class MongoCSFLE {
   //
   // KMIP provider configuration
   private String kmsProvider = "local";
+  private KmsProvider kmsProviderEnum = KmsProvider.LOCAL;
+  //
   private Map<String, Map<String, Object>> kmsProviders = new HashMap<String, Map<String, Object>>();
   private Map<String, Object> providerDetails = new HashMap<>();
 
@@ -64,11 +71,22 @@ public class MongoCSFLE {
 
     EncryptionConfig encryption = configuration.getEncryption();
     this.kmsProvider = encryption.getKmsProvider();
+    this.kmsProviderEnum = KmsProvider.fromString(this.kmsProvider);
+    //
     this.keyVaultDb = encryption.getKeyVaultDb();
     this.keyVaultColl = encryption.getKeyVaultColl();
     this.keyVaultNamespace = encryption.getKeyVaultDb() + "." + encryption.getKeyVaultColl();
     this.cryptSharedLibPath = encryption.getCryptSharedLibPath();
+    //
+    // If KMS provider is not set, default to local
+    if (this.kmsProvider == null) {
+      this.kmsProvider = KmsProvider.LOCAL.getProvider();
+      this.kmsProviderEnum = KmsProvider.LOCAL;
+    }
     this.masterKeyFilePath = encryption.getMasterKeyFilePath();
+    //
+    // If KMS provider is KMIP, set the endpoint
+    this.kmsEndpoint = encryption.getKmsEndpoint();
   }
 
   private void setClient() {
@@ -97,10 +115,6 @@ public class MongoCSFLE {
   }
 
   private void setupClientEncryption() {
-    EncryptionConfig encryption = configuration.getEncryption();
-    this.masterKeyFilePath = encryption.getMasterKeyFilePath();
-    this.cryptSharedLibPath = encryption.getCryptSharedLibPath();
-
     this.clientEncryptionSettings =
         ClientEncryptionSettings.builder()
             .keyVaultMongoClientSettings(
@@ -111,12 +125,13 @@ public class MongoCSFLE {
             .kmsProviders(kmsProviders)
             .build();
 
+    logger.info("ClientEncryptionSettings: " + clientEncryptionSettings.toString());
     this.clientEncryption = ClientEncryptions.create(clientEncryptionSettings);
   }
 
   //
   // Function to create the key vault collection and index
-  private void createKeyVault() {
+  public void createKeyVault() {
     //
     // Determine the index options for the key vault collection
     IndexOptions indexOptions = new IndexOptions()
@@ -142,7 +157,7 @@ public class MongoCSFLE {
 
   //
   // Function to generate a new data encryption key (DEK) for the KMIP provider
-  private String generateDataKey() {
+  public String generateDataKey() {
     BsonBinary dataKeyId = this.clientEncryption
       .createDataKey(
         kmsProvider,
@@ -180,17 +195,67 @@ public class MongoCSFLE {
     return localMasterKeyRead;
   }
 
-  private void setupKmsProviders() throws IOException, Exception {
-    // Set up the KMIP provider configuration
-    byte[] localMasterKeyRead = readMasterKeyFile();
+  public static enum KmsProvider {
+    LOCAL("local"),
+    AWS("aws"),
+    AZURE("azure"),
+    GCP("gcp"),
+    KMIP("kmip");
 
-    this.providerDetails.put("key", localMasterKeyRead);
-    this.kmsProviders.put(this.kmsProvider, this.providerDetails);
+    private final String provider;
+
+    KmsProvider(String provider) {
+      this.provider = provider;
+    }
+
+    public String getProvider() {
+      return provider;
+    }
+
+
+    public static KmsProvider fromString(String provider) {
+      for (KmsProvider p : KmsProvider.values()) {
+        if (p.provider.equalsIgnoreCase(provider)) {
+          return p;
+        }
+      }
+      throw new IllegalArgumentException("No enum constant for provider: " + provider);
+    }
+  }
+
+  private void setupKmsProviders() throws IOException, Exception {
     //
-    // TODO: For KMS
-    // Set up the KMIP provider configuration
-    // this.providerDetails.put("endpoint", this.kmsEndpoint);
-    // this.kmsProviders.put(this.kmsProvider, this.providerDetails);
+    if (this.kmsProvider == null) {
+      throw new IllegalArgumentException("KMS provider is not set");
+    }
+    //
+    //
+    switch (this.kmsProviderEnum) {
+      case LOCAL:
+        // Set up the KMIP provider configuration
+        byte[] localMasterKeyRead = readMasterKeyFile();
+        this.providerDetails.put("key", localMasterKeyRead);
+        break;
+      // case AWS:
+      //   this.providerDetails.put("accessKeyId", "your-access-key-id");
+      //   this.providerDetails.put("secretAccessKey", "your-secret-access-key");
+      //   break;
+      // case AZURE:
+      //   this.providerDetails.put("tenantId", "your-tenant-id");
+      //   this.providerDetails.put("clientId", "your-client-id");
+      //   this.providerDetails.put("clientSecret", "your-client-secret");
+      //   break;
+      // case GCP:
+      //   this.providerDetails.put("projectId", "your-project-id");
+      //   this.providerDetails.put("location", "global");
+      //   break;
+      case KMIP:
+        this.providerDetails.put("endpoint", this.kmsEndpoint);
+        this.kmsProviders.put(this.kmsProvider, this.providerDetails);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported KMS provider: " + this.kmsProvider + " or " + this.kmsProviderEnum);
+    }
   }
 
   // private void loadSchema(String namespace) {
@@ -206,45 +271,12 @@ public class MongoCSFLE {
   // }
 
   public void loadSchema() {
-
-    // String dekId = this.generateDataKey();
-    // System.out.println("Generated DEK ID: " + dekId);
-
-    // // this.schemaMap = schemas.getSchemas();
-    // Document jsonSchema = new Document()
-    // .append("bsonType", "object")
-    // .append("encryptMetadata",
-    //     new Document()
-    //       .append("keyId",
-    //         (new ArrayList<>(
-    //           Arrays.asList(
-    //             new Document()
-    //               .append("$binary",
-    //                 new Document()
-    //                   .append("base64", dekId)
-    //                   .append("subType", "04"))
-    //           )
-    //         ))
-    //       )
-    //     )
-    // .append("properties", new Document()
-    //   .append("secret_detail", new Document()
-    //     .append("encrypt", new Document()
-    //       .append("bsonType", "string")
-    //       .append("algorithm", "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
-    //     )
-    //   )
-    // );
-
-    // HashMap<String, BsonDocument> schemaMap = new HashMap<String, BsonDocument>();
-    // schemaMap.put("app.games", BsonDocument.parse(jsonSchema.toJson()));
-    // this.schemaMap = schemaMap;
-
     SchemaConfiguration schemas = configuration.getSchema();
     this.schemaMap = schemas.getSchemas();
   }
 
-  public void setup() {
+  public void preConfigure() {
+    createKeyVault();
     try {
       //
       // For local key testing first time only
@@ -252,24 +284,47 @@ public class MongoCSFLE {
       // createKeyVault();
       // byte[] localMasterKeyWrite = generateMasterKey();
       // createMasterKeyFile(localMasterKeyWrite);
+      //
+      switch (this.kmsProviderEnum) {
+        case LOCAL:
+          // Generate a new local master key
+          byte[] localMasterKeyWrite = generateMasterKey();
+          createMasterKeyFile(localMasterKeyWrite);
+          break;
+        // case AWS:
+        //   // Generate a new AWS master key
+        //   break;
+        // case AZURE:
+        //   // Generate a new Azure master key
+        //   break;
+        // case GCP:
+        //   // Generate a new GCP master key
+        //   break;
+        case KMIP:
+          // String dekIdKey = generateDataKey();
+          // Print the generated DEK ID
+          // logger.info("Generated DEK ID: " + dekIdKey);
+          break;
+        default:
+          break;
+      }
 
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
 
-      System.out.println();
-      System.out.println();
-      System.out.println("URI" + this.mongoUri);
-      System.out.println("Key Vault: " + this.keyVaultNamespace);
-      System.out.println("Schema: " + this.schemaMap);
-      System.out.println();
-      System.out.println();
-
+  public MongoCSFLE setup() {
+    try {
       setupKmsProviders();
       setupClientEncryption();
       loadSchema();
       setClient();
       this.mongoClient = MongoClients.create(this.mongoClientSettings);
-
     } catch (Exception e) {
       e.printStackTrace();
     }
+
+    return this;
   }
 }

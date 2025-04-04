@@ -1,21 +1,17 @@
 package me.jirachai.mongodb.migrator.csfle;
 
-import java.util.List;
-import java.util.Map;
-import org.bson.Document;
-import lombok.Getter;
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
-import me.jirachai.mongodb.migrator.csfle.config.SchemaConfiguration;
+import me.jirachai.mongodb.migrator.csfle.service.MongoCSFLE;
+import lombok.Getter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Spec;
 import picocli.CommandLine.Model.CommandSpec;
 
 @Command(name = "mongodb-migrator-csfle", mixinStandardHelpOptions = true, version = "1.0",
-    subcommands = {MigrateCommand.class},
+    subcommands = {MigrateCommand.class, GenerateDekIdCommand.class},
     description = "CLI app with required command and optional config files")
 public class App implements Runnable {
 
@@ -23,15 +19,16 @@ public class App implements Runnable {
     @Option(names = {"-c", "--config"}, description = "Path to config.json")
     private String configPath = "config.json";
 
+    @Getter
     @Option(names = {"-s", "--schema"}, description = "Path to schema.json")
     private String schemaPath = "schema.json";
 
+    @Getter
+    @Option(names = {"-t", "--migrate-target"}, description = "Path to migrate-target.json")
+    private String migrateTargetPath = "migrate-target.json";
+
     @Spec CommandSpec spec;
     public void run() {
-        // System.out.printf("Command: %s%n", command);
-        // System.out.printf("Config: %s%n", configPath != null ? configPath : "not provided");
-        // System.out.printf("Schema: %s%n", schemaPath != null ? schemaPath : "not provided");
-
         // your app logic here
         spec.commandLine()
             .usage(System.err);
@@ -46,39 +43,46 @@ public class App implements Runnable {
 @Command(name = "migrate", description = "Migrate data from one MongoDB instance to another")
 class MigrateCommand implements Runnable {
 
-    @Option(names = {"-f", "--from"}, description = "Source MongoDB connection string")
-    private String from;
+    @ParentCommand
+    private App parent;
 
-    @Option(names = {"-t", "--to"}, description = "Target MongoDB connection string")
-    private String to;
+    @Override
+    public void run() {
+        // Configuration files
+        String configPath = parent.getConfigPath();
+        String schemaPath = parent.getSchemaPath();
+        String migrateTargetPath = parent.getMigrateTargetPath();
+
+        Configuration configuration = Configuration.load(configPath);
+        configuration
+            .loadMigrateTarget(migrateTargetPath)
+            .loadSchema(schemaPath);
+
+        MigrationDriver driver = new MigrationDriver(configuration);
+        driver.setup();
+        driver.startMigration();
+
+    }
+}
+
+@Command(name = "generate-dekid", description = "Generate DEK ID for a given key")
+class GenerateDekIdCommand implements Runnable {
 
     @ParentCommand
     private App parent;
 
     @Override
     public void run() {
+        // Configuration files
         String configPath = parent.getConfigPath();
+        String schemaPath = parent.getSchemaPath();
+        Configuration configuration = Configuration.load(configPath)
+            .loadSchema(schemaPath);
 
-        // System.out.printf("Migrating data from %s to %s%n", from, to);
-        // your migration logic here
-
-        // MigrationDriver driver = new MigrationDriver(from, to);
-        Configuration _config = Configuration.load(configPath);
-        _config
-            .loadMigrateTarget("./migrate-target.json")
-            .loadSchema("./schema.json");
-        // _config.setNamespaces(ns);
-        // SchemaConfiguration schema = _config.loadSchema("./schema.json");
-
-        // System.out.println(schema.getSchemas());
-        // System.out.println((_config.getSchema().getSchemaAsDocument("app.people")));
-        // System.out.println(_config.getMigrateTarget());
-
-        // System.out.println(_config.toString());
-
-        MigrationDriver driver = new MigrationDriver(_config);
-        driver.setup();
-        driver.startMigration();
-
+        MongoCSFLE mongoCSFLE = new MongoCSFLE(configuration.getTargetMongoDBUri(), configuration);
+        mongoCSFLE.setup();
+        mongoCSFLE.preConfigure();
+        String dekId = mongoCSFLE.generateDataKey();
+        System.out.println("Generated DEK ID: " + dekId);
     }
 }

@@ -2,9 +2,12 @@ package me.jirachai.mongodb.migrator.csfle.worker;
 
 import java.util.List;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.mongodb.client.MongoClient;
 
 public class MigrationTargetWriter {
+  private static final Logger logger = LoggerFactory.getLogger(MigrationTargetWriter.class);
   private MongoClient mongoClient;
   private String targetDatabase;
   private String targetCollection;
@@ -30,7 +33,7 @@ public class MigrationTargetWriter {
     // using the provided MongoClient instance.
 
     // Print writing
-    System.out.println("Writing batch of documents to target database " + targetDatabase + " and collection " + targetCollection +  "...");
+    logger.info("Writing batch of documents to target database " + targetDatabase + " and collection " + targetCollection +  "...");
 
     this.mongoClient
       .getDatabase(targetDatabase)

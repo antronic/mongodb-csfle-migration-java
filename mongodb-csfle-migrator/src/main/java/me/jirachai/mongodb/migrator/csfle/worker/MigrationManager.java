@@ -3,18 +3,20 @@ package me.jirachai.mongodb.migrator.csfle.worker;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
-import com.mongodb.client.FindIterable;
+import org.slf4j.Logger;
 import com.mongodb.client.MongoClient;
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
 
 public class MigrationManager {
+  private static final Logger logger =
+      org.slf4j.LoggerFactory.getLogger(MigrationManager.class);
   private final MigrationSourceReader sourceReader;
   private final MigrationTargetWriter targetWriter;
 
-  private final MongoClient sourceMongoClient;
-  private final MongoClient targetMongoClient;
-  private final String sourceDatabase;
-  private final String sourceCollection;
+  private MongoClient sourceMongoClient;
+  private MongoClient targetMongoClient;
+  private String sourceDatabase;
+  private String sourceCollection;
 
   private Configuration configuration;
 
@@ -26,19 +28,12 @@ public class MigrationManager {
   private int currentBatchIndex = 0;
 
   public MigrationManager(
-      Configuration configuration,
-      MongoClient sourceMongoClient,
-      MongoClient targetMongoClient,
-      String sourceDatabase,
-      String sourceCollection) {
+      WorkerManager workerManager,
+      Configuration configuration
+      ) {
     this.configuration = configuration;
     this.sourceReader = new MigrationSourceReader();
     this.targetWriter = new MigrationTargetWriter();
-
-    this.sourceMongoClient = sourceMongoClient;
-    this.targetMongoClient = targetMongoClient;
-    this.sourceDatabase = sourceDatabase;
-    this.sourceCollection = sourceCollection;
   }
 
   private long getTotalCountInCollection() {
@@ -54,6 +49,19 @@ public class MigrationManager {
     return (int) Math.ceil((double) totalCount / (double) batchSize);
   }
 
+  public MigrationManager setup(
+      MongoClient sourceMongoClient,
+      MongoClient targetMongoClient,
+      String sourceDatabase,
+      String sourceCollection) {
+    this.sourceMongoClient = sourceMongoClient;
+    this.targetMongoClient = targetMongoClient;
+    this.sourceDatabase = sourceDatabase;
+    this.sourceCollection = sourceCollection;
+
+    return this;
+  }
+
   public void run() {
     // Implement the logic to run the migration process
     // This could involve reading data from the source, processing it,
@@ -63,7 +71,7 @@ public class MigrationManager {
 
     // Start the migration process
     for (int i = 0; i < batchCount; i++) {
-      System.out.println( "Batch: " + i  + " - " + sourceCollection);
+      logger.info( "Batch: " + i  + " - " + sourceCollection);
 
       currentBatchIndex = i;
       currentBatchSize = Math.min(batchSize, (int) (totalCount - (i * batchSize)));
@@ -75,12 +83,12 @@ public class MigrationManager {
       // Read data from the source
       List<Document> docs = sourceReader.read().into(new ArrayList<>());
 
-      System.out.println("Target database: " + sourceDatabase + ", collection: " + sourceCollection);
-      System.out.println("Read " + docs.size() + " documents.");
+      logger.info("Target database: " + sourceDatabase + ", collection: " + sourceCollection);
+      logger.info("Read " + docs.size() + " documents.");
 
       // for (Document doc : docs) {
       //   // Process each document
-      //   System.out.println(doc.toJson());
+      //   logger.info(doc.toJson());
       // }
 
       // Write data to the target
@@ -88,11 +96,13 @@ public class MigrationManager {
     }
   }
 
-  public void initialize() {
+  public MigrationManager initialize() {
     // Initialize the migration process
     // This could involve setting up connections, preparing data structures, etc.
     this.batchSize = configuration.getWorker().getMaxBatchSize();
     this.totalCount = getTotalCountInCollection();
     this.batchCount = getTotalRounds();
+
+    return this;
   }
 }

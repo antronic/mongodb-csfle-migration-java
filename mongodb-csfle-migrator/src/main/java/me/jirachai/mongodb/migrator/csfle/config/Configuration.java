@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bson.Document;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +13,6 @@ import lombok.Data;
 public class Configuration {
   private String sourceMongoDBUri;
   private String targetMongoDBUri;
-  private String[] sourceDatabases;
 
   private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfig encryption = new EncryptionConfig();
@@ -42,9 +40,14 @@ public class Configuration {
     private String keyVaultColl = "__keyVault";
 
     private String kmsProvider = "local";
-    private String masterKeyFilePath;
     private String cryptSharedLibPath;
     private Map<String, Object> extraOptions = new HashMap<>();
+    //
+    // KMIP provider configuration
+    // Provider: Local
+    private String masterKeyFilePath;
+    // Provider: KMIP
+    private String kmsEndpoint;
 
     private String getKeyVaultNamespace() {
       return keyVaultDb + "." + keyVaultColl;
@@ -78,9 +81,6 @@ public class Configuration {
       defaultConfig.setSourceMongoDBUri(userConfig.getSourceMongoDBUri());
     if (userConfig.getTargetMongoDBUri() != null)
       defaultConfig.setTargetMongoDBUri(userConfig.getTargetMongoDBUri());
-    if (userConfig.getSourceDatabases() != null)
-      defaultConfig.setSourceDatabases(userConfig.getSourceDatabases());
-
     // if (userConfig.getCollectionPrefix() != null)
     //   defaultConfig.setCollectionPrefix(userConfig.getCollectionPrefix());
 
@@ -100,6 +100,8 @@ public class Configuration {
       if (userEnc.getMasterKeyFilePath() != null)
         defaultEnc.setMasterKeyFilePath(userEnc.getMasterKeyFilePath());
       if (userEnc.getCryptSharedLibPath() != null)
+      if (userEnc.getKmsEndpoint() != null)
+        defaultEnc.setKmsEndpoint(userEnc.getKmsEndpoint());
         defaultEnc.setCryptSharedLibPath(userEnc.getCryptSharedLibPath());
       if (userEnc.getExtraOptions() != null)
         defaultEnc.getExtraOptions().putAll(userEnc.getExtraOptions());
@@ -126,12 +128,13 @@ public class Configuration {
     if (config.getTargetMongoDBUri() == null) {
       throw new IllegalArgumentException("targetMongoDBUri is required");
     }
-    if (config.getSourceDatabases() == null) {
-      throw new IllegalArgumentException("sourceDatabases is required");
-    }
-    if (config.getEncryption().getMasterKeyFilePath() == null) {
+    if (config.getEncryption().getKmsProvider().equals("local") && config.getEncryption().getMasterKeyFilePath() == null) {
       throw new IllegalArgumentException("encryption.masterKeyFilePath is required");
     }
+    if (config.getEncryption().getKmsProvider().equals("kmip") && config.getEncryption().getKmsEndpoint() == null) {
+      throw new IllegalArgumentException("encryption.kmsEndpoint is required");
+    }
+
     if (config.getEncryption().getCryptSharedLibPath() == null) {
       throw new IllegalArgumentException("encryption.cryptSharedLibPath is required");
     }

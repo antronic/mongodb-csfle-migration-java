@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.archvied;
+package me.jirachai.mongodb.migrator.csfle.archived;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +44,7 @@ public class CSFLEInsert {
   //
   // KMIP provider configuration
   private String kmsProvider = "kmip";
-  private String kmsEndpoint = "pykmip.local:5696";
+  private String kmsEndpoint = "pykmip-01.local:5696";
   private Map<String, Map<String, Object>> kmsProviders = new HashMap<String, Map<String, Object>>();
   private Map<String, Object> providerDetails = new HashMap<>();
   //
@@ -163,7 +163,7 @@ public class CSFLEInsert {
     AutoEncryptionSettings autoEncryptionSettings = AutoEncryptionSettings.builder()
         .keyVaultNamespace(csfleInsert.keyVaultNamespace)
         .kmsProviders(kmsProviders)
-        .schemaMap(new HashMap<String, BsonDocument>())
+        .schemaMap(schemaMap)
         .build();
 
     MongoClientSettings settings = MongoClientSettings.builder()
@@ -179,7 +179,7 @@ public class CSFLEInsert {
       //
       // Create the document
       Document doc = new Document("name", "Tom Jone")
-          .append("ssn", "123123123123123");
+          .append("ssn", "44444444444");
       //
       // Insert the document
       collection.insertOne(doc);

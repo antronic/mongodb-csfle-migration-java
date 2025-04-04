@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.client.MongoClient;
 
 public class MigrationDriver {
+    private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
     private final Configuration config;
     private final WorkerManager workerManager;
-    private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
     private MongoDBService sourceService;
     private MongoDBService targetService;
     // private MongoClient targetMongoClient;
@@ -43,15 +43,23 @@ public class MigrationDriver {
 
                     workerManager.submitTask(collectionName, () -> {
                         MigrationManager migrationManager = new MigrationManager(
-                            this.config,
-                            sourceService.getClient(),
-                            targetService.getClient(),
-                            dbName,
-                            collectionName
+                            workerManager,
+                            this.config
                         );
 
-                        migrationManager.initialize();
-                        migrationManager.run();
+                        MongoClient sourceClient = sourceService.getClient();
+                        MongoClient targetClient = targetService.getClient();
+                        sourceClient.getDatabase(dbName);
+                        targetClient.getDatabase(dbName);
+
+                        migrationManager.setup(
+                            sourceClient,
+                            targetClient,
+                            dbName,
+                            collectionName
+                        )
+                        .initialize()
+                        .run();
                     });
                 }
             }
@@ -60,20 +68,21 @@ public class MigrationDriver {
         }
     }
 
-    private void getCollectionsToMigrate() {
-        // Implementation to get collections based on prefix filter
-        List<String> sourceDatabases = Arrays.asList(config.getSourceDatabases());
 
-        Map<String, List<String>> _collectionsMap = new HashMap<>();
+    // private void getCollectionsToMigrate() {
+    //     // Implementation to get collections based on prefix filter
+    //     List<String> sourceDatabases = Arrays.asList(config.getSourceDatabases());
 
-        for (String dbName : sourceDatabases) {
-            // Get all collections in the database
-            List<String> collections = sourceService.getAllCollections(dbName);
-            _collectionsMap.put(dbName, collections);
-        }
+    //     Map<String, List<String>> _collectionsMap = new HashMap<>();
 
-        this.collectionsMap = _collectionsMap;
-    }
+    //     for (String dbName : sourceDatabases) {
+    //         // Get all collections in the database
+    //         List<String> collections = sourceService.getAllCollections(dbName);
+    //         _collectionsMap.put(dbName, collections);
+    //     }
+
+    //     this.collectionsMap = _collectionsMap;
+    // }
 
     private List<String> getCollectionsToMigrateOfDatabaseList(String dbName) {
         return this.collectionsMap.get(dbName);
@@ -93,7 +102,6 @@ public class MigrationDriver {
         targetService = new MongoDBService(targetMongoClient);
         //
         //
-        // this.getCollectionsToMigrate();
         Map<String, List<String>> dbs = this.config.getMigrateTarget();
 
         if (dbs != null) {
@@ -105,9 +113,12 @@ public class MigrationDriver {
                     this.collectionsMap.put(dbName, collections);
                 }
             }
-        } else {
-            this.getCollectionsToMigrate();
         }
+        if (this.collectionsMap.isEmpty()) {
+            logger.error("No collections to migrate. Please check your configuration.");
+            throw new RuntimeException("No collections to migrate.");
+        }
+        logger.info("Collections to migrate: {}", this.collectionsMap);
     }
 
     private void shutdown() {
