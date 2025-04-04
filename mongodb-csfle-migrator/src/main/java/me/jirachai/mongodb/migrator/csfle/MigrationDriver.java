@@ -1,6 +1,7 @@
 package me.jirachai.mongodb.migrator.csfle;
 
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
+import me.jirachai.mongodb.migrator.csfle.service.MongoCSFLE;
 import me.jirachai.mongodb.migrator.csfle.service.MongoDBService;
 import me.jirachai.mongodb.migrator.csfle.worker.MigrationManager;
 import me.jirachai.mongodb.migrator.csfle.worker.WorkerManager;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.mongodb.client.MongoClient;
 
 public class MigrationDriver {
     private final Configuration config;
@@ -17,7 +19,8 @@ public class MigrationDriver {
     private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
     private MongoDBService sourceService;
     private MongoDBService targetService;
-    private Map<String, List<String>> collectionsMap;
+    // private MongoClient targetMongoClient;
+    private Map<String, List<String>> collectionsMap = new HashMap<>();
 
     public MigrationDriver(Configuration config) {
         this.config = config;
@@ -81,10 +84,18 @@ public class MigrationDriver {
     public void setup() {
         // Initialize source and target MongoDB clients
         sourceService = new MongoDBService(config.getSourceMongoDBUri());
-        targetService = new MongoDBService(config.getTargetMongoDBUri());
-
+        //
+        //
+        MongoCSFLE csfleClient = new MongoCSFLE(config.getTargetMongoDBUri(), config);
+        csfleClient.setup();
+        //
+        MongoClient targetMongoClient = csfleClient.getMongoClient();
+        targetService = new MongoDBService(targetMongoClient);
+        //
+        //
         // this.getCollectionsToMigrate();
         Map<String, List<String>> dbs = this.config.getMigrateTarget();
+
         if (dbs != null) {
             for (Map.Entry<String, List<String>> entry : dbs.entrySet()) {
                 String dbName = entry.getKey();
@@ -105,9 +116,9 @@ public class MigrationDriver {
         targetService.close();
     }
 
-    private void dryRun() {
-        Configuration _config = Configuration.load("config.json");
+    // private void dryRun() {
+    //     Configuration _config = Configuration.load("config.json");
 
-        System.out.println(_config.toString());
-    }
+    //     System.out.println(_config.toString());
+    // }
 }

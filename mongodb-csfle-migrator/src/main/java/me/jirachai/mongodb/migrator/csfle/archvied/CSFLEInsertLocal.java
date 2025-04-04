@@ -29,7 +29,6 @@ import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
 
-@Deprecated
 public class CSFLEInsertLocal {
   //
   // MongoDB connection string
@@ -82,7 +81,8 @@ public class CSFLEInsertLocal {
   //
   // Function to generate a new data encryption key (DEK) for the KMIP provider
   private String generateDataKey() {
-    BsonBinary datakeyId = this.clientEncryption.createDataKey(kmsProvider, new DataKeyOptions().masterKey(new BsonDocument()));
+    BsonBinary datakeyId = this.clientEncryption
+      .createDataKey(kmsProvider, new DataKeyOptions().masterKey(new BsonDocument()));
     String base64DataKeyId = Base64.getEncoder().encodeToString(datakeyId.getData());
     return base64DataKeyId;
   }

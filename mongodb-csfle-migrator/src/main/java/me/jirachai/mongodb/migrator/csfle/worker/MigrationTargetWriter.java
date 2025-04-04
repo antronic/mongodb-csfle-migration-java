@@ -28,10 +28,13 @@ public class MigrationTargetWriter {
   public void writeBatch(List<Document> documents) {
     // Implement the logic to write a batch of documents to the target database and collection
     // using the provided MongoClient instance.
-    // This could involve inserting multiple documents in a single operation.
+
+    // Print writing
+    System.out.println("Writing batch of documents to target database " + targetDatabase + " and collection " + targetCollection +  "...");
+
     this.mongoClient
-        .getDatabase(targetDatabase)
-        .getCollection(targetCollection)
-        .insertMany(documents);
+      .getDatabase(targetDatabase)
+      .getCollection(targetCollection)
+      .insertMany(documents);
   }
 }

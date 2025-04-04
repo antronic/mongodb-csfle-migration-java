@@ -1,10 +1,15 @@
 package me.jirachai.mongodb.migrator.csfle.config;
 
+import java.util.HashMap;
 import java.util.Map;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Data
 public class SchemaConfiguration {
@@ -13,10 +18,37 @@ public class SchemaConfiguration {
    * @param namespace The namespace of the collection
    * @param schema The encrypt schema of the collection
    */
-  private Map</* namespace */ String, Object> schemas;
+  @Setter(AccessLevel.NONE)
+  @Getter(AccessLevel.NONE)
+  private HashMap</* namespace */ String, BsonDocument> schemas;
 
-  public Object getSchema(String namespace) {
-    return schemas.get(namespace);
+  private Map<String, Object> schemasObject;
+
+  // public Document getSchemas() {
+  //   ObjectMapper mapper = new ObjectMapper();
+  //   Map<String, Object> schemaMap = mapper.convertValue(
+  //     schemas,
+  //     new TypeReference<Map<String, Object>>() {}
+  //   );
+
+  //   return new Document(schemaMap);
+  // }
+
+  public HashMap<String, BsonDocument> getSchemas() {
+    ObjectMapper mapper = new ObjectMapper();
+    HashMap<String, BsonDocument> converted = new HashMap<>();
+
+    for (Map.Entry<String, Object> entry : schemasObject.entrySet()) {
+        // Convert Object to Document
+        Document document = mapper.convertValue(entry.getValue(), Document.class);
+
+        // Convert Document to BsonDocument
+        BsonDocument bsonDocument = BsonDocument.parse(document.toJson());
+
+        converted.put(entry.getKey(), bsonDocument);
+    }
+
+    return converted;
   }
 
   public Document getSchemaAsDocument(String namespace) {

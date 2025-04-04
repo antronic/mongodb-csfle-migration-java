@@ -2,7 +2,9 @@
   "<namespace-here>": {
     "bsonType": "object",
     "encryptMetadata": {
-    "keyId": ""
+    "keyId": [
+      { "$binary": { "base64": "YOUR-DEK-ID-BASE64", "subType": "04" } }
+    ]
   },
     "properties": {
       "insurance": {

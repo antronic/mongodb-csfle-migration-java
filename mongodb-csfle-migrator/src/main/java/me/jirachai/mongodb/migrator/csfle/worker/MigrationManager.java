@@ -78,10 +78,10 @@ public class MigrationManager {
       System.out.println("Target database: " + sourceDatabase + ", collection: " + sourceCollection);
       System.out.println("Read " + docs.size() + " documents.");
 
-      for (Document doc : docs) {
-        // Process each document
-        System.out.println(doc.toJson());
-      }
+      // for (Document doc : docs) {
+      //   // Process each document
+      //   System.out.println(doc.toJson());
+      // }
 
       // Write data to the target
       targetWriter.writeBatch(docs);

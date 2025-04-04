@@ -74,10 +74,11 @@ class MigrateCommand implements Runnable {
         // System.out.println((_config.getSchema().getSchemaAsDocument("app.people")));
         // System.out.println(_config.getMigrateTarget());
 
+        // System.out.println(_config.toString());
+
         MigrationDriver driver = new MigrationDriver(_config);
         driver.setup();
         driver.startMigration();
 
-        // System.out.println(_config.toString());
     }
 }

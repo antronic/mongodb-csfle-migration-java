@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bson.Document;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -153,7 +154,7 @@ public class Configuration {
         );
 
         SchemaConfiguration schemaConfig = new SchemaConfiguration();
-        schemaConfig.setSchemas(schemaJson);
+        schemaConfig.setSchemasObject(schemaJson);
 
         this.schema = schemaConfig;
       }

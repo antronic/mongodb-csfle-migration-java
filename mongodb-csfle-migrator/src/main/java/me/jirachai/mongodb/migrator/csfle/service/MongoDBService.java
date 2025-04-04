@@ -6,11 +6,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import lombok.Getter;
+import lombok.Setter;
 
 public class MongoDBService implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
-  private final MongoClient client;
+
+  @Setter
+  @Getter
+  private MongoClient client;
   private final String uri;
+
+  public MongoDBService(MongoClient client) {
+    this.client = client;
+    this.uri = null;
+  }
 
   public MongoDBService(String uri) {
     this.client = setupClient(uri);
@@ -27,10 +37,6 @@ public class MongoDBService implements AutoCloseable {
       logger.error("Error during setup: ", e.getMessage());
       throw new RuntimeException("Failed to setup MongoDB client", e);
     }
-  }
-
-  public MongoClient getClient() {
-    return client;
   }
 
   public List<String> getAllDatabases() {
