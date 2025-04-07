@@ -39,8 +39,7 @@ jobs:
       with:
         files: ./releases/*.zip
         if: startsWith(github.ref, 'refs/tags/')
-        env:
-          token: ${{ secrets.CUSTOM_GH_PAT }}
+        token: ${{ secrets.CUSTOM_GH_PAT }}
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph
