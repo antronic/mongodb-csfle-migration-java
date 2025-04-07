@@ -1,4 +1,4 @@
 config.json
 schema.json
-migrate-target.json
+migration-config.json
 master-key.txt
