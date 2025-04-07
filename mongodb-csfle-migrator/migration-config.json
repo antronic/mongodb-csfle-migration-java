@@ -1,8 +1,0 @@
-{
-  "targetToMigrate": {
-    "app": [
-      "games", "employees"
-    ],
-    "test": [ "coll1" ]
-  }
-}
