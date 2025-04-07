@@ -1,6 +1,6 @@
-me/jirachai/mongodb/migrator/csfle/config/Configuration$2.class
 me/jirachai/mongodb/migrator/csfle/service/MongoCSFLE$KmsProvider.class
 me/jirachai/mongodb/migrator/csfle/worker/MigrationSourceReader.class
+me/jirachai/mongodb/migrator/csfle/config/MigrationConfiguration.class
 me/jirachai/mongodb/migrator/csfle/config/Configuration$WorkerConfig.class
 me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration$1.class
 me/jirachai/mongodb/migrator/csfle/worker/WorkerManager$WorkerTask.class

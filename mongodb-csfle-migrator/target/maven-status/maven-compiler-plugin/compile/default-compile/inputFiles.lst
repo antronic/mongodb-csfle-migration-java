@@ -4,6 +4,7 @@
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/archived/CSFLEInsertLocal.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/archived/QueryDatabase.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/Configuration.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/MigrationConfiguration.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/config/SchemaConfiguration.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/service/MongoCSFLE.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/me/jirachai/mongodb/migrator/csfle/service/MongoDBService.java

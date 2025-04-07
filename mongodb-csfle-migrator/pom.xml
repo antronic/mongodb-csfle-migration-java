@@ -5,7 +5,7 @@
 
   <groupId>me.jirachai.mongodb</groupId>
   <artifactId>mongodb-csfle-migrator</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.1b-SNAPSHOT</version>
 
   <name>mongodb-csfle-migrator</name>
   <!-- FIXME change it to the project's website -->

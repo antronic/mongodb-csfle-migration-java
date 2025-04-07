@@ -1,6 +1,7 @@
 package me.jirachai.mongodb.migrator.csfle;
 
 import me.jirachai.mongodb.migrator.csfle.config.Configuration;
+import me.jirachai.mongodb.migrator.csfle.config.MigrationConfiguration;
 import me.jirachai.mongodb.migrator.csfle.service.MongoCSFLE;
 import me.jirachai.mongodb.migrator.csfle.service.MongoDBService;
 import me.jirachai.mongodb.migrator.csfle.worker.MigrationManager;
@@ -18,7 +19,6 @@ public class MigrationDriver {
   private final WorkerManager workerManager;
   private MongoDBService sourceService;
   private MongoDBService targetService;
-  // private MongoClient targetMongoClient;
   private Map<String, List<String>> collectionsMap = new HashMap<>();
 
   public MigrationDriver(Configuration config) {
@@ -74,6 +74,8 @@ public class MigrationDriver {
   // this.collectionsMap = _collectionsMap;
   // }
 
+  @SuppressWarnings("unused")
+  @Deprecated
   private List<String> getCollectionsToMigrateOfDatabaseList(String dbName) {
     return this.collectionsMap.get(dbName);
   }
@@ -92,10 +94,10 @@ public class MigrationDriver {
     targetService = new MongoDBService(targetMongoClient);
     //
     //
-    Map<String, List<String>> dbs = this.config.getMigrateTarget();
+    MigrationConfiguration dbs = this.config.getMigrationConfig();
 
     if (dbs != null) {
-      for (Map.Entry<String, List<String>> entry : dbs.entrySet()) {
+      for (Map.Entry<String, List<String>> entry : dbs.getTargetToMigrate().entrySet()) {
         String dbName = entry.getKey();
         List<String> collections = entry.getValue();
 
@@ -116,10 +118,4 @@ public class MigrationDriver {
     sourceService.close();
     targetService.close();
   }
-
-  // private void dryRun() {
-  // Configuration _config = Configuration.load("config.json");
-
-  // System.out.println(_config.toString());
-  // }
 }

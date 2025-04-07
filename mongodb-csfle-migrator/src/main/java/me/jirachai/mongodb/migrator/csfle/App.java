@@ -24,8 +24,8 @@ public class App implements Runnable {
     private String schemaPath = "schema.json";
 
     @Getter
-    @Option(names = {"-t", "--migrate-target"}, description = "Path to migrate-target.json")
-    private String migrateTargetPath = "migrate-target.json";
+    @Option(names = {"-t", "--migrate-config"}, description = "Path to migrate-config.json")
+    private String migrationConfig = "migration-config.json";
 
     @Spec CommandSpec spec;
     public void run() {
@@ -51,17 +51,21 @@ class MigrateCommand implements Runnable {
         // Configuration files
         String configPath = parent.getConfigPath();
         String schemaPath = parent.getSchemaPath();
-        String migrateTargetPath = parent.getMigrateTargetPath();
+        String migrationConfig = parent.getMigrationConfig();
 
         Configuration configuration = Configuration.load(configPath);
         configuration
-            .loadMigrateTarget(migrateTargetPath)
+            .loadMigrateTarget(migrationConfig)
             .loadSchema(schemaPath);
+
+        System.out.println("Configuration loaded:");
+        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDBUri());
+        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDBUri());
+        System.out.println(configuration.getMigrationConfig());
 
         MigrationDriver driver = new MigrationDriver(configuration);
         driver.setup();
         driver.startMigration();
-
     }
 }
 

@@ -21,8 +21,8 @@ public class Configuration {
   private String schemaFilePath = "schema.json";
   // private String collectionPrefix = "migrated_";
 
-  private Map<String, List<String>> migrateTarget;
-  private String migrateTargetFilePath = "migrate-target.json";
+  private MigrationConfiguration migrationConfig;
+  private String migrationConfigFilePath = "migration-config.json";
 
   @Data
   public static class WorkerConfig {
@@ -175,7 +175,7 @@ public class Configuration {
   }
 
   public Configuration loadMigrateTarget() {
-    return loadMigrateTarget(this.migrateTargetFilePath);
+    return loadMigrateTarget(this.migrationConfigFilePath);
   }
 
   public Configuration loadMigrateTarget(String nsPath) {
@@ -186,13 +186,13 @@ public class Configuration {
     try {
       // If config file provided, merge with defaults
       if (nsPath != null) {
-        Map<String, List<String>> userMigrateTarget =
+        MigrationConfiguration userMigrateTarget =
           mapper.readValue(
             new File(nsPath),
-            new TypeReference<Map<String, List<String>>>() {}
+            MigrationConfiguration.class
           );
 
-        this.migrateTarget = userMigrateTarget;
+        this.migrationConfig = userMigrateTarget;
       }
       return this;
     } catch (Exception e) {

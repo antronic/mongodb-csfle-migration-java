@@ -270,17 +270,16 @@ public class MongoCSFLE {
     }
   }
 
-  // private void loadSchema(String namespace) {
-  //   SchemaConfiguration schemaConfig = configuration.getSchema();
-  //   if (schemaConfig != null) {
-  //     Document schema = schemaConfig.getSchemaAsDocument(namespace);
-  //     if (schema != null) {
-  //       this.schemaMap = schema;
-  //     } else {
-  //       throw new IllegalArgumentException("Schema is null");
-  //     }
-  //   }
-  // }
+  public boolean isCryptSharedLibExist() {
+    try (FileInputStream fis = new FileInputStream(this.cryptSharedLibPath)) {
+      return true;
+    } catch (FileNotFoundException e) {
+      return false;
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
+    return false;
+  }
 
   public void loadSchema() {
     SchemaConfiguration schemas = configuration.getSchema();
@@ -328,6 +327,11 @@ public class MongoCSFLE {
 
   public MongoCSFLE setup() {
     try {
+      if (!isCryptSharedLibExist()) {
+        logger.error("Crypt shared library not found: " + this.cryptSharedLibPath);
+        throw new RuntimeException("Crypt shared library not found: " + this.cryptSharedLibPath);
+      }
+      // Check if the crypt shared library exists
       setupKmsProviders();
       setupClientEncryption();
       loadSchema();
