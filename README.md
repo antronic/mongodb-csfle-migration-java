@@ -27,7 +27,9 @@ This project contains a Java sample that demonstrates how to migrate a MongoDB d
 - **`--schema`** - Path to the schema file (JSON format).
 - **`--migration-config`** - Path to the migration configuration file (JSON format).
 
-**TLS/SSL Configuration for KMS**
+**Java Properties for TLS/SSL Configuration**
+To configure TLS/SSL for your KMS connectivity
+
 - **`javax.net.ssl.keyStoreType`** - The type of the keystore (e.g., JKS, PKCS12).
 - **`javax.net.ssl.keyStore`** - The path to the keystore file.
 - **`javax.net.ssl.keyStorePassword`** - The password for the keystore.
