@@ -88,6 +88,36 @@ mvn dependency:copy-dependencies -DoutputDirectory=target/lib
 java -cp target/MongoDBCSFLEMigrator/MongoDBCSFLEMigrator-1.0.1b-SNAPSHOT-jar-with-dependencies.jar:target/lib app.migrator.csfle.CSFLEMigratorApp
 ```
 
+---
+### Run the application with Fat JAR
+
+**Windows (Power Shell)**
+```pwsh
+java `
+  "-Djavax.net.ssl.keyStoreType=<your-keystore-type>" `\
+  "-Djavax.net.ssl.keyStore=<path-to-your-keystore>" `\
+  "-Djavax.net.ssl.keyStorePassword=<your-keystore-password>" `\
+  # Truststore
+  "-Djavax.net.ssl.trustStoreType=<your-truststore-type>" `\
+  "-Djavax.net.ssl.trustStore=<path-to-your-truststore>" `\
+  "-Djavax.net.ssl.trustStorePassword=<your-truststore-password>" `\
+  -jar MongoDBCSFLEMigrator-1.0.1e-SNAPSHOT-jar-with-dependencies.jar migrate
+```
+
+**macOS/Linux**
+```bash
+
+**Windows**
+```pwsh
+java \
+  "-Djavax.net.ssl.keyStoreType=pkcs12" \
+  "-Djavax.net.ssl.keyStore=./kmip/java/2/kmip-client.p12" \
+  "-Djavax.net.ssl.trustStore=./kmip/java/2/rootCA.jks" \
+  "-Djavax.net.ssl.trustStoreType=jks" \
+  "-Djavax.net.ssl.trustStorePassword=123321" \
+  "-Djavax.net.ssl.keyStorePassword=123321" \
+  -jar MongoDBCSFLEMigrator-1.0.1e-SNAPSHOT-jar-with-dependencies.jar migrate
+```
 
 > [!WARNING]
 > ## Disclaimer

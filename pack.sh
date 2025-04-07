@@ -16,6 +16,7 @@ done
 # Zip the releases directory
 cd $RELEASES_FILES_FOLDER
 zip -r MongoDBCSFLEMigrator.zip *
+# 7z a -tzip -mx=9 -p<your-password> -mem=AES256 MongoDBCSFLEMigrator.zip *
 
 # Move the zip file to the parent directory
 mv MongoDBCSFLEMigrator.zip ../
