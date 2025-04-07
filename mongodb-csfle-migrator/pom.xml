@@ -161,7 +161,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>app.migrator.csfle.App</mainClass>
+              <mainClass>app.migrator.csfle.CSFLEMigratorApp</mainClass>
             </manifest>
           </archive>
           <descriptorRefs>

@@ -1,4 +1,4 @@
-/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/app/migrator/csfle/App.java
+/private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/app/migrator/csfle/CSFLEMigratorApp.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/app/migrator/csfle/MigrationDriver.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/app/migrator/csfle/archived/CSFLEInsert.java
 /private/var/share/dev/www/customers/CPF/mongodb-csfle-migration-java/mongodb-csfle-migrator/src/main/java/app/migrator/csfle/archived/CSFLEInsertLocal.java

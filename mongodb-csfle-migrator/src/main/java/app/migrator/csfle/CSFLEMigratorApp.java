@@ -10,10 +10,10 @@ import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Spec;
 import picocli.CommandLine.Model.CommandSpec;
 
-@Command(name = "mongodb-migrator-csfle", mixinStandardHelpOptions = true, version = "1.0",
+@Command(name = "mongodb-migrator-csfle", mixinStandardHelpOptions = true, version = "1.0.1e-beta",
     subcommands = {MigrateCommand.class, GenerateDekIdCommand.class},
     description = "CLI app with required command and optional config files")
-public class App implements Runnable {
+public class CSFLEMigratorApp implements Runnable {
 
     @Getter
     @Option(names = {"-c", "--config"}, description = "Path to config.json")
@@ -35,7 +35,7 @@ public class App implements Runnable {
     }
 
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new App()).execute(args);
+        int exitCode = new CommandLine(new CSFLEMigratorApp()).execute(args);
         System.exit(exitCode);
     }
 }
@@ -44,7 +44,7 @@ public class App implements Runnable {
 class MigrateCommand implements Runnable {
 
     @ParentCommand
-    private App parent;
+    private CSFLEMigratorApp parent;
 
     @Override
     public void run() {
@@ -73,7 +73,7 @@ class MigrateCommand implements Runnable {
 class GenerateDekIdCommand implements Runnable {
 
     @ParentCommand
-    private App parent;
+    private CSFLEMigratorApp parent;
 
     @Override
     public void run() {

@@ -11,8 +11,8 @@ This project contains a Java sample that demonstrates how to migrate a MongoDB d
 ## Application Detail
 
 ### Main Class
-- App.java
-  - `app.migrator.csfle.App`
+- CSFLEMigratorApp.java
+  - `app.migrator.csfle.CSFLEMigratorApp`
 
 ## Usage
 
@@ -65,7 +65,7 @@ mvn clean install
 
 4. Run the application (Test the migration function)
 ```bash
-mvn clean compile exec:java -Dexec.mainClass="app.migrator.csfle.App" \
+mvn clean compile exec:java -Dexec.mainClass="app.migrator.csfle.CSFLEMigratorApp" \
   # SSL
   -Djavax.net.ssl.keyStoreType=<your-keystore-type> \
   -Djavax.net.ssl.keyStore=<path-to-your-keystore> \
@@ -85,7 +85,7 @@ mvn dependency:copy-dependencies -DoutputDirectory=target/lib
 ---
 ### Run the application with Non-Fat JAR
 ```bash
-java -cp target/MongoDBCSFLEMigrator/MongoDBCSFLEMigrator-1.0.1b-SNAPSHOT-jar-with-dependencies.jar:target/lib app.migrator.csfle.App
+java -cp target/MongoDBCSFLEMigrator/MongoDBCSFLEMigrator-1.0.1b-SNAPSHOT-jar-with-dependencies.jar:target/lib app.migrator.csfle.CSFLEMigratorApp
 ```
 
 

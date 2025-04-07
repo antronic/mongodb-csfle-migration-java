@@ -1,3 +1,4 @@
+app/migrator/csfle/CSFLEMigratorApp.class
 app/migrator/csfle/service/MongoDBService.class
 app/migrator/csfle/worker/WorkerManager$WorkerStatus.class
 app/migrator/csfle/MigrationDriver.class
@@ -20,5 +21,4 @@ app/migrator/csfle/config/SchemaConfiguration.class
 app/migrator/csfle/service/MongoCSFLE.class
 app/migrator/csfle/worker/WorkerManager.class
 app/migrator/csfle/config/Configuration.class
-app/migrator/csfle/App.class
 app/migrator/csfle/worker/MigrationVerifier.class
