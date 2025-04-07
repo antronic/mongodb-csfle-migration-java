@@ -32,3 +32,31 @@ This project contains a Java sample that demonstrates how to migrate a MongoDB d
   }
 ...
 ```
+
+## Usage
+
+### Development
+1. Clone the repository
+2. Install dependencies
+```bash
+mvn clean install
+```
+3. Create configuration files
+- `config.json`
+- `schema.json`
+- `migration-config.json`
+
+4. Run the application (Test the migration function)
+```bash
+mvn clean compile exec:java -Dexec.mainClass="me.jirachai.mongodb.migrator.csfle.App" \
+  # SSL
+  -Djavax.net.ssl.keyStoreType=<your-keystore-type> \
+  -Djavax.net.ssl.keyStore=<path-to-your-keystore> \
+  -Djavax.net.ssl.keyStorePassword=<your-keystore-password> \
+  # Truststore
+  -Djavax.net.ssl.trustStoreType=<your-truststore-type> \
+  -Djavax.net.ssl.trustStore=<path-to-your-truststore> \
+  -Djavax.net.ssl.trustStorePassword=<your-truststore-password> \
+  # Function
+  -Dexec.args="migrate"
+```

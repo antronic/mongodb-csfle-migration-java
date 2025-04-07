@@ -1,7 +1,6 @@
 {
   "sourceMongoDBUri": "mongodb://localhost:27019",
   "targetMongoDBUri": "mongodb://<username>:<password>@localhost:27020",
-  "migrateTargetFilePath": "./migrate-target.json",
   "encryption": {
     "kmsProvider": "kmip",
     "kmsEndpoint": "your-kmip-hostname:5696",
