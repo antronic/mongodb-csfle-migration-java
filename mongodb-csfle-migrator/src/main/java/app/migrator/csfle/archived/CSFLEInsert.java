@@ -1,16 +1,11 @@
-package me.jirachai.mongodb.migrator.csfle.archived;
+package app.migrator.csfle.archived;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
+// import javax.net.ssl.SSLContext;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
@@ -29,17 +24,14 @@ import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
 
-public class CSFLEInsertLocal {
+@Deprecated
+public class CSFLEInsert {
   //
   // MongoDB connection string
   private static String mongoDBUri = "mongodb://localhost:27019/?directConnection=true";
   private static String databaseName = "app";
   private static String collectionName = "people";
 
-  private static String masterKeyFilePath = "master-key.txt";
-  //
-  // E.g., "./mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib"
-  private static String cryptSharedLibPath = "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib";
 
   private MongoClient client;
 
@@ -51,14 +43,19 @@ public class CSFLEInsertLocal {
   private String keyVaultNamespace = keyVaultDb + "." + keyVaultColl;
   //
   // KMIP provider configuration
-  private String kmsProvider = "local";
+  private String kmsProvider = "kmip";
+  private String kmsEndpoint = "pykmip-01.local:5696";
   private Map<String, Map<String, Object>> kmsProviders = new HashMap<String, Map<String, Object>>();
   private Map<String, Object> providerDetails = new HashMap<>();
   //
   // Setup ClientEncryption
   private void setupClientEncryption() {
-    //
     // Create the ClientEncryption object
+    //
+    // Map<String, SSLContext> sslContextMap = new HashMap<>();
+    // Set up the SSL context for the KMIP provider
+    // sslContextMap.put(kmsProvider, SSLContext.getDefault());
+
     ClientEncryptionSettings clientEncryptionSettings = ClientEncryptionSettings.builder()
       .keyVaultMongoClientSettings(
         MongoClientSettings.builder()
@@ -67,6 +64,9 @@ public class CSFLEInsertLocal {
       )
       .keyVaultNamespace(this.keyVaultNamespace)
       .kmsProviders(this.kmsProviders)
+      // .kmsProviderSslContextMap(
+
+      // )
       .build();
 
 
@@ -81,20 +81,9 @@ public class CSFLEInsertLocal {
   //
   // Function to generate a new data encryption key (DEK) for the KMIP provider
   private String generateDataKey() {
-    BsonBinary datakeyId = this.clientEncryption
-      .createDataKey(kmsProvider, new DataKeyOptions().masterKey(new BsonDocument()));
+    BsonBinary datakeyId = this.clientEncryption.createDataKey(kmsProvider, new DataKeyOptions().masterKey(new BsonDocument()));
     String base64DataKeyId = Base64.getEncoder().encodeToString(datakeyId.getData());
     return base64DataKeyId;
-  }
-  //
-  // Function to generate a new data encryption key (DEK) for the KMIP provider
-  private void generateMasterKey() throws FileNotFoundException, IOException {
-    byte[] localMasterKeyWrite = new byte[96];
-
-    new SecureRandom().nextBytes(localMasterKeyWrite);
-    try (FileOutputStream stream = new FileOutputStream(masterKeyFilePath)) {
-        stream.write(localMasterKeyWrite);
-    }
   }
   //
   // Function to create the key vault collection and index
@@ -120,25 +109,17 @@ public class CSFLEInsertLocal {
     );
   }
 
-  private Map<String, Map<String, Object>> setupKmsProviders() throws Exception {
+  private Map<String, Map<String, Object>> setupKmsProviders() {
     // Set up the KMIP provider configuration
-    byte[] localMasterKeyRead = new byte[96];
-
-    try (FileInputStream fis = new FileInputStream(masterKeyFilePath)) {
-        if (fis.read(localMasterKeyRead) < 96)
-            throw new Exception("Expected to read 96 bytes from file");
-    }
-
-    this.providerDetails.put("key", localMasterKeyRead);
+    this.providerDetails.put("endpoint", this.kmsEndpoint);
     this.kmsProviders.put(this.kmsProvider, this.providerDetails);
     return this.kmsProviders;
   }
   //
   //
   // Main function
-  public static void main(String[] args) throws Exception {
-    CSFLEInsertLocal csfleInsert = new CSFLEInsertLocal();
-    csfleInsert.generateMasterKey();
+  public static void main(String[] args) {
+    CSFLEInsert csfleInsert = new CSFLEInsert();
     csfleInsert.setupClient();
     Map<String, Map<String, Object>> kmsProviders = csfleInsert.setupKmsProviders();
     csfleInsert.setupClientEncryption();
@@ -154,7 +135,7 @@ public class CSFLEInsertLocal {
     .append("encryptMetadata",
         new Document()
           .append("keyId",
-            (new ArrayList<>(
+            new ArrayList<>(
               Arrays.asList(
                 new Document()
                   .append("$binary",
@@ -162,7 +143,7 @@ public class CSFLEInsertLocal {
                       .append("base64", dekId)
                       .append("subType", "04"))
               )
-            ))
+            )
           )
         )
     .append("properties", new Document()
@@ -176,20 +157,13 @@ public class CSFLEInsertLocal {
 
     HashMap<String, BsonDocument> schemaMap = new HashMap<String, BsonDocument>();
     String namespace = databaseName + "." + collectionName;
-    System.out.println("Namespace: " + namespace);
     schemaMap.put(namespace, BsonDocument.parse(jsonSchema.toJson()));
-
-    System.out.println("Schema: " + schemaMap);
     //
     // KMS
-    Map<String, Object> extraOptions = new HashMap<String, Object>();
-    extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
-    // extraOptions.put("cryptSharedLibRequired", true);
     AutoEncryptionSettings autoEncryptionSettings = AutoEncryptionSettings.builder()
         .keyVaultNamespace(csfleInsert.keyVaultNamespace)
         .kmsProviders(kmsProviders)
         .schemaMap(schemaMap)
-        .extraOptions(extraOptions)
         .build();
 
     MongoClientSettings settings = MongoClientSettings.builder()
@@ -204,9 +178,8 @@ public class CSFLEInsertLocal {
       MongoCollection<Document> collection = database.getCollection(collectionName);
       //
       // Create the document
-      Document doc = new Document()
-          .append("name", "Tom Jone")
-          .append("ssn", "123123123123123");
+      Document doc = new Document("name", "Tom Jone")
+          .append("ssn", "44444444444");
       //
       // Insert the document
       collection.insertOne(doc);

@@ -1,7 +1,7 @@
-package me.jirachai.mongodb.migrator.csfle;
+package app.migrator.csfle;
 
-import me.jirachai.mongodb.migrator.csfle.config.Configuration;
-import me.jirachai.mongodb.migrator.csfle.service.MongoCSFLE;
+import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.service.MongoCSFLE;
 import lombok.Getter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;

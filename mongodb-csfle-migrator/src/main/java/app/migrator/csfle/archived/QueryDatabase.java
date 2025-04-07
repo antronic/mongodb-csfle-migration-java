@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.archived;
+package app.migrator.csfle.archived;
 
 import org.bson.Document;
 

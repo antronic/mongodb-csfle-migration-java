@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.service;
+package app.migrator.csfle.service;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -27,10 +27,10 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
+import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.config.SchemaConfiguration;
+import app.migrator.csfle.config.Configuration.EncryptionConfig;
 import lombok.Getter;
-import me.jirachai.mongodb.migrator.csfle.config.Configuration;
-import me.jirachai.mongodb.migrator.csfle.config.SchemaConfiguration;
-import me.jirachai.mongodb.migrator.csfle.config.Configuration.EncryptionConfig;
 
 public class MongoCSFLE {
   private final Logger logger = org.slf4j.LoggerFactory.getLogger(MongoCSFLE.class);

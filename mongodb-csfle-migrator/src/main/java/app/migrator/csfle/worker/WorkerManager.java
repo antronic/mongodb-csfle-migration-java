@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.worker;
+package app.migrator.csfle.worker;
 
 import java.util.concurrent.*;
 import java.util.Map;

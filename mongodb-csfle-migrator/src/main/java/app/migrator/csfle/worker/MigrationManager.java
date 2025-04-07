@@ -1,11 +1,11 @@
-package me.jirachai.mongodb.migrator.csfle.worker;
+package app.migrator.csfle.worker;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
 import org.slf4j.Logger;
 import com.mongodb.client.MongoClient;
-import me.jirachai.mongodb.migrator.csfle.config.Configuration;
+import app.migrator.csfle.config.Configuration;
 
 public class MigrationManager {
   private static final Logger logger =

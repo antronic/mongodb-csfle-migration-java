@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.config;
+package app.migrator.csfle.config;
 
 import java.util.Map;
 import lombok.Data;

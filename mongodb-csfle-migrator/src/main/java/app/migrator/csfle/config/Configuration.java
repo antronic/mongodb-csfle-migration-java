@@ -1,8 +1,7 @@
-package me.jirachai.mongodb.migrator.csfle.config;
+package app.migrator.csfle.config;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;

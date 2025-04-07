@@ -1,4 +1,4 @@
-package me.jirachai.mongodb.migrator.csfle.service;
+package app.migrator.csfle.service;
 
 import java.util.ArrayList;
 import java.util.List;

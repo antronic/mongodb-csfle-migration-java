@@ -1,17 +1,17 @@
-package me.jirachai.mongodb.migrator.csfle;
+package app.migrator.csfle;
 
-import me.jirachai.mongodb.migrator.csfle.config.Configuration;
-import me.jirachai.mongodb.migrator.csfle.config.MigrationConfiguration;
-import me.jirachai.mongodb.migrator.csfle.service.MongoCSFLE;
-import me.jirachai.mongodb.migrator.csfle.service.MongoDBService;
-import me.jirachai.mongodb.migrator.csfle.worker.MigrationManager;
-import me.jirachai.mongodb.migrator.csfle.worker.WorkerManager;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.mongodb.client.MongoClient;
+import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.config.MigrationConfiguration;
+import app.migrator.csfle.service.MongoCSFLE;
+import app.migrator.csfle.service.MongoDBService;
+import app.migrator.csfle.worker.MigrationManager;
+import app.migrator.csfle.worker.WorkerManager;
 
 public class MigrationDriver {
   private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
