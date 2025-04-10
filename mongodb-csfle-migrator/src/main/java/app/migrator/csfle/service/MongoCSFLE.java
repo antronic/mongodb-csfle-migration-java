@@ -9,12 +9,14 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.Document;
 import org.slf4j.Logger;
+
 import com.mongodb.AutoEncryptionSettings;
 import com.mongodb.ClientEncryptionSettings;
 import com.mongodb.ConnectionString;
@@ -27,9 +29,10 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
+
 import app.migrator.csfle.config.Configuration;
-import app.migrator.csfle.config.SchemaConfiguration;
 import app.migrator.csfle.config.Configuration.EncryptionConfig;
+import app.migrator.csfle.config.SchemaConfiguration;
 import lombok.Getter;
 
 public class MongoCSFLE {
@@ -52,17 +55,17 @@ public class MongoCSFLE {
   private ClientEncryptionSettings clientEncryptionSettings;
   private AutoEncryptionSettings autoEncryptionSettings;
 
-  private String keyVaultDb;
-  private String keyVaultColl;
-  private String keyVaultNamespace;
+  private final String keyVaultDb;
+  private final String keyVaultColl;
+  private final String keyVaultNamespace;
 
   //
   // KMIP provider configuration
   private String kmsProvider = "local";
   private KmsProvider kmsProviderEnum = KmsProvider.LOCAL;
   //
-  private Map<String, Map<String, Object>> kmsProviders = new HashMap<String, Map<String, Object>>();
-  private Map<String, Object> providerDetails = new HashMap<>();
+  private final Map<String, Map<String, Object>> kmsProviders = new HashMap<>();
+  private final Map<String, Object> providerDetails = new HashMap<>();
 
   private HashMap<String, BsonDocument> schemaMap;
 
@@ -104,7 +107,7 @@ public class MongoCSFLE {
             //         .build())
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
-            .schemaMap(schemaMap)
+            // .schemaMap(schemaMap)
             .extraOptions(extraOptions)
             .build();
 
@@ -276,6 +279,7 @@ public class MongoCSFLE {
     } catch (FileNotFoundException e) {
       return false;
     } catch (IOException e1) {
+      logger.error("Error reading crypt shared library: " + e1.getMessage());
       e1.printStackTrace();
     }
     return false;
@@ -321,6 +325,7 @@ public class MongoCSFLE {
       }
 
     } catch (Exception e) {
+      logger.error("Error generating master key: " + e.getMessage());
       e.printStackTrace();
     }
   }
@@ -338,6 +343,7 @@ public class MongoCSFLE {
       setClient();
       this.mongoClient = MongoClients.create(this.mongoClientSettings);
     } catch (Exception e) {
+      logger.error("Error setting up MongoDB CSFLE: " + e.getMessage());
       e.printStackTrace();
     }
 
