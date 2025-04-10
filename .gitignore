@@ -25,5 +25,6 @@ replay_pid*
 
 .DS_Store
 generated
+create-schema.js
 
 tmp
