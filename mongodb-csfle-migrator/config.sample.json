@@ -1,6 +1,6 @@
 {
   "sourceMongoDBUri": "mongodb://localhost:27019",
-  "targetMongoDBUri": "mongodb://<username>:<password>@localhost:27020",
+  "targetMongoDBUri": "mongodb://<username>:<password>@localhost:27020/?socketTimeoutMS=50000&connectTimeoutMS=50000",
   "encryption": {
     "kmsProvider": "kmip",
     "kmsEndpoint": "your-kmip-hostname:5696",
