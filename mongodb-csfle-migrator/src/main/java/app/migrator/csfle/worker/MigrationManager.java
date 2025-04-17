@@ -2,9 +2,12 @@ package app.migrator.csfle.worker;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.Document;
 import org.slf4j.Logger;
+
 import com.mongodb.client.MongoClient;
+
 import app.migrator.csfle.config.Configuration;
 
 public class MigrationManager {
@@ -21,6 +24,7 @@ public class MigrationManager {
 
   private Configuration configuration;
 
+  private boolean isInitialized = false;
   private int batchSize = 1000;
   private int batchCount = 0;
   private long totalCount = 0;
@@ -65,6 +69,23 @@ public class MigrationManager {
   }
 
   public void run() {
+    if (!isInitialized) {
+      throw new IllegalStateException("MigrationManager is not initialized.");
+    }
+    if (sourceMongoClient == null || targetMongoClient == null) {
+      throw new IllegalStateException("MongoDB clients are not set up.");
+    }
+    if (sourceDatabase == null || sourceCollection == null) {
+      throw new IllegalStateException("Source database or collection is not set.");
+    }
+    if (batchSize <= 0) {
+      throw new IllegalArgumentException("Batch size must be greater than zero.");
+    }
+
+
+    currentBatchIndex = 0;
+    currentBatchCount = getTotalRounds();
+
     // Implement the logic to run the migration process
     // This could involve reading data from the source, processing it,
     // and writing it to the target database.
@@ -111,6 +132,12 @@ public class MigrationManager {
     this.batchSize = configuration.getWorker().getMaxBatchSize();
     this.totalCount = getTotalCountInCollection();
     this.batchCount = getTotalRounds();
+
+    // this.currentBatchSize = Math.min(batchSize, (int) (totalCount - (currentBatchIndex * batchSize)));
+    // this.currentBatchCount = Math.min(batchCount, this.getTotalRounds());
+    // this.currentBatchIndex = 0;
+
+    this.isInitialized = true;
 
     return this;
   }

@@ -5,13 +5,13 @@ import app.migrator.csfle.service.MongoCSFLE;
 import lombok.Getter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Spec;
-import picocli.CommandLine.Model.CommandSpec;
 
 @Command(name = "mongodb-migrator-csfle", mixinStandardHelpOptions = true, version = "1.0.1e-beta",
-    subcommands = {MigrateCommand.class, GenerateDekIdCommand.class},
+    subcommands = {MigrateCommand.class, GenerateDekIdCommand.class, ShowConfigCommand.class},
     description = "CLI app with required command and optional config files")
 public class CSFLEMigratorApp implements Runnable {
 
@@ -88,5 +88,26 @@ class GenerateDekIdCommand implements Runnable {
         mongoCSFLE.preConfigure();
         String dekId = mongoCSFLE.generateDataKey();
         System.out.println("Generated DEK ID: " + dekId);
+    }
+}
+
+@Command(name="show-config", description = "Show the current configuration")
+class ShowConfigCommand implements Runnable {
+
+    @ParentCommand
+    private CSFLEMigratorApp parent;
+
+    @Override
+    public void run() {
+        // Configuration files
+        String configPath = parent.getConfigPath();
+        String schemaPath = parent.getSchemaPath();
+        Configuration configuration = Configuration.load(configPath)
+            .loadSchema(schemaPath);
+
+        System.out.println("Configuration loaded:");
+        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDBUri());
+        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDBUri());
+        System.out.println(configuration);
     }
 }

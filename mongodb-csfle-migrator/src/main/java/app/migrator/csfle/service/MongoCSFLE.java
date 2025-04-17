@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
@@ -29,6 +31,7 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
+import com.mongodb.connection.SslSettings;
 
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.Configuration.EncryptionConfig;
@@ -93,12 +96,60 @@ public class MongoCSFLE {
     this.kmsEndpoint = encryption.getKmsEndpoint();
   }
 
-  private void setClient() {
-    Map<String, Object> extraOptions = new HashMap<String, Object>();
+  private Map<String, SSLContext> createKmipSSLContextMap() throws Exception {
+    String keyStorePath = configuration.getEncryption().getKeyStorePath();
+    String keyStorePassword = configuration.getEncryption().getKeyStorePassword();
+    String trustStorePath = configuration.getEncryption().getTrustStorePath();
+    String trustStorePassword = configuration.getEncryption().getTrustStorePassword();
+    String keyStoreType = configuration.getEncryption().getKeyStoreType();
+    String trustStoreType = configuration.getEncryption().getTrustStoreType();
+
+    logger.info(
+        "KeyStore Path: " + keyStorePath +
+        "\nKeyStore Password: " + keyStorePassword +
+        "\nTrustStore Path: " + trustStorePath +
+        "\nTrustStore Password: " + trustStorePassword +
+        "\nKeyStore Type: " + keyStoreType +
+        "\nTrustStore Type: " + trustStoreType
+    );
+
+    SSLContext sslContext = SSLContextFactory.create(
+        keyStorePath,
+        keyStorePassword,
+        trustStorePath,
+        trustStorePassword,
+        keyStoreType,
+        trustStoreType);
+
+    SslSettings.builder()
+        .enabled(true)
+        .invalidHostNameAllowed(true)
+        .context(sslContext)
+        .build();
+
+    // StreamFactoryFactory sff = NettyStreamFactoryFactory.builder()
+    //   .sslContext(sslContext)
+    //   .build();
+
+    Map<String, SSLContext> sslContextMap = new HashMap<>();
+    sslContextMap.put(
+        KmsProvider.KMIP.getProvider(),
+        sslContext
+    );
+
+    return sslContextMap;
+  }
+
+  private void setClient() throws Exception {
+    // Set up the KMS providers
+    Map<String, Object> extraOptions = new HashMap<>();
     extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
 
     this.autoEncryptionSettings =
         AutoEncryptionSettings.builder()
+            /*
+             * Uncomment the following line to use a custom key vault MongoClientSettings
+             */
             // .keyVaultMongoClientSettings(
             //     MongoClientSettings.builder()
             //         .applyConnectionString(
@@ -107,8 +158,9 @@ public class MongoCSFLE {
             //         .build())
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
-            // .schemaMap(schemaMap)
+            .schemaMap(schemaMap)
             .extraOptions(extraOptions)
+            .kmsProviderSslContextMap(this.createKmipSSLContextMap())
             .build();
 
     this.mongoClientSettings =
@@ -128,7 +180,7 @@ public class MongoCSFLE {
             .build();
   }
 
-  private void setupClientEncryption() {
+  private void setupClientEncryption() throws Exception {
     this.clientEncryptionSettings =
         ClientEncryptionSettings.builder()
             .keyVaultMongoClientSettings(
@@ -137,6 +189,7 @@ public class MongoCSFLE {
                     .build())
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
+            .kmsProviderSslContextMap(this.createKmipSSLContextMap())
             .build();
 
     logger.info("ClientEncryptionSettings: " + clientEncryptionSettings.toString());

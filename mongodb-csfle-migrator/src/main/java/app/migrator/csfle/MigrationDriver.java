@@ -1,11 +1,14 @@
 package app.migrator.csfle;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.client.MongoClient;
+
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.MigrationConfiguration;
 import app.migrator.csfle.service.MongoCSFLE;
@@ -41,13 +44,13 @@ public class MigrationDriver {
           workerManager.submitTask(collectionName, () -> {
             MigrationManager migrationManager = new MigrationManager(workerManager, this.config);
 
-            MongoClient sourceClient = sourceService.getClient();
-            MongoClient targetClient = targetService.getClient();
-            sourceClient.getDatabase(dbName);
-            targetClient.getDatabase(dbName);
+            MongoClient sourceMongoClient = sourceService.getClient();
+            MongoClient targetMongoClient = targetService.getClient();
+            sourceMongoClient.getDatabase(dbName);
+            targetMongoClient.getDatabase(dbName);
 
             migrationManager
-              .setup(sourceClient, targetClient, dbName, collectionName)
+              .setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
               .initialize()
               .run();
           });

@@ -2,10 +2,13 @@ package app.migrator.csfle.service;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,7 +43,7 @@ public class MongoDBService implements AutoCloseable {
   }
 
   public List<String> getAllDatabases() {
-    List<String> databases = new ArrayList<String>();
+    List<String> databases = new ArrayList<>();
 
     for (String dbName : client.listDatabaseNames()) {
       databases.add(dbName);
@@ -50,7 +53,7 @@ public class MongoDBService implements AutoCloseable {
   }
 
   public List<String> getAllCollections(String dbName) {
-    List<String> collections = new ArrayList<String>();
+    List<String> collections = new ArrayList<>();
 
     for (String collectionName : client.getDatabase(dbName).listCollectionNames()) {
       collections.add(collectionName);

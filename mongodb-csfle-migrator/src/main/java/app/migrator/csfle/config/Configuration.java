@@ -3,9 +3,11 @@ package app.migrator.csfle.config;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.Data;
 
 @Data
@@ -48,9 +50,16 @@ public class Configuration {
     // Provider: KMIP
     private String kmsEndpoint;
 
-    private String getKeyVaultNamespace() {
-      return keyVaultDb + "." + keyVaultColl;
-    }
+    // private String getKeyVaultNamespace() {
+    //   return keyVaultDb + "." + keyVaultColl;
+    // }
+
+    private String keyStorePath;
+    private String keyStorePassword;
+    private String trustStorePath;
+    private String trustStorePassword;
+    private String keyStoreType;
+    private String trustStoreType;
   }
 
   public static Configuration load(String configPath) {
@@ -104,6 +113,18 @@ public class Configuration {
         defaultEnc.setCryptSharedLibPath(userEnc.getCryptSharedLibPath());
       if (userEnc.getExtraOptions() != null)
         defaultEnc.getExtraOptions().putAll(userEnc.getExtraOptions());
+      if (userEnc.getKeyStorePath() != null)
+        defaultEnc.setKeyStorePath(userEnc.getKeyStorePath());
+      if (userEnc.getKeyStorePassword() != null)
+        defaultEnc.setKeyStorePassword(userEnc.getKeyStorePassword());
+      if (userEnc.getKeyStoreType() != null)
+        defaultEnc.setKeyStoreType(userEnc.getKeyStoreType());
+      if (userEnc.getTrustStorePath() != null)
+        defaultEnc.setTrustStorePath(userEnc.getTrustStorePath());
+      if (userEnc.getTrustStorePassword() != null)
+        defaultEnc.setTrustStorePassword(userEnc.getTrustStorePassword());
+      if (userEnc.getTrustStoreType() != null)
+        defaultEnc.setTrustStoreType(userEnc.getTrustStoreType());
     }
 
     // Merge worker config
@@ -136,6 +157,25 @@ public class Configuration {
 
     if (config.getEncryption().getCryptSharedLibPath() == null) {
       throw new IllegalArgumentException("encryption.cryptSharedLibPath is required");
+    }
+
+    if (config.getEncryption().getKeyStorePath() == null) {
+      throw new IllegalArgumentException("encryption.keyStorePath is required");
+    }
+    if (config.getEncryption().getKeyStorePassword() == null) {
+      throw new IllegalArgumentException("encryption.keyStorePassword is required");
+    }
+    if (config.getEncryption().getKeyStoreType() == null) {
+      throw new IllegalArgumentException("encryption.keyStoreType is required");
+    }
+    if (config.getEncryption().getTrustStorePath() == null) {
+      throw new IllegalArgumentException("encryption.trustStorePath is required");
+    }
+    if (config.getEncryption().getTrustStorePassword() == null) {
+      throw new IllegalArgumentException("encryption.trustStorePassword is required");
+    }
+    if (config.getEncryption().getTrustStoreType() == null) {
+      throw new IllegalArgumentException("encryption.trustStoreType is required");
     }
   }
 
