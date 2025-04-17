@@ -2,3 +2,6 @@ config.json
 schema.json
 migration-config.json
 master-key.txt
+
+# Ignore target directory
+target
