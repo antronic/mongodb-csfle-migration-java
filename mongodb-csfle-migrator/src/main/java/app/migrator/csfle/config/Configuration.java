@@ -12,8 +12,10 @@ import lombok.Data;
 
 @Data
 public class Configuration {
-  private String sourceMongoDBUri;
-  private String targetMongoDBUri;
+  // private String sourceMongoDBUri;
+  // private String targetMongoDBUri;
+  private MongoDBConnectionConfig sourceMongoDB = new MongoDBConnectionConfig();
+  private MongoDBConnectionConfig targetMongoDB = new MongoDBConnectionConfig();
 
   private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfig encryption = new EncryptionConfig();
@@ -62,6 +64,21 @@ public class Configuration {
     private String trustStoreType;
   }
 
+  @Data
+  public class MongoDBConnectionConfig {
+    private String uri;
+    private boolean tls;
+    private String authMechanism = "SCRAM-SHA-256";
+    private String authSource = "admin";
+    private String tlsCAFile;
+    private String tlsCertificateKeyFile;
+    private String tlsCertificateKeyPassword;
+    // private String tlsInsecure;
+
+    private String username;
+    private String password;
+  }
+
   public static Configuration load(String configPath) {
     ObjectMapper mapper =
         new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -85,10 +102,13 @@ public class Configuration {
   }
 
   private static void mergeConfigurations(Configuration defaultConfig, Configuration userConfig) {
-    if (userConfig.getSourceMongoDBUri() != null)
-      defaultConfig.setSourceMongoDBUri(userConfig.getSourceMongoDBUri());
-    if (userConfig.getTargetMongoDBUri() != null)
-      defaultConfig.setTargetMongoDBUri(userConfig.getTargetMongoDBUri());
+    // TODO: Merge MongoDB connection configs
+    // if (userConfig.getSourceMongoDBUri() != null)
+    //   defaultConfig.setSourceMongoDBUri(userConfig.getSourceMongoDBUri());
+    // if (userConfig.getTargetMongoDBUri() != null)
+
+
+    //   defaultConfig.setTargetMongoDBUri(userConfig.getTargetMongoDBUri());
     // if (userConfig.getCollectionPrefix() != null)
     //   defaultConfig.setCollectionPrefix(userConfig.getCollectionPrefix());
 
@@ -141,40 +161,79 @@ public class Configuration {
     }
   }
 
+  private static void validateMongoDBConnectionConfig(MongoDBConnectionConfig config, String label) {
+    if (config.getUri() == null) {
+      throw new IllegalArgumentException(label + ".uri is required");
+    }
+    if (config.getAuthMechanism() == null) {
+      throw new IllegalArgumentException(label + ".authMechanism is required");
+    }
+    switch (config.getAuthMechanism()) {
+      case "SCRAM-SHA-1":
+      case "SCRAM-SHA-256":
+        if (config.getUsername() == null) {
+          throw new IllegalArgumentException(label + ".username is required");
+        }
+        if (config.getPassword() == null) {
+          throw new IllegalArgumentException(label + ".password is required");
+        }
+        break;
+      case "MONGODB-X509":
+        if (config.getTlsCAFile() == null) {
+          throw new IllegalArgumentException(label + ".tlsCAFile is required");
+        }
+        if (config.getTlsCertificateKeyFile() == null) {
+          throw new IllegalArgumentException(label + ".tlsCertificateKeyFile is required");
+        }
+        if (config.getTlsCertificateKeyPassword() == null) {
+          throw new IllegalArgumentException(label + ".tlsCertificateKeyPassword is required");
+        }
+        break;
+      case "NONE":
+        // No authentication required
+        break;
+      default:
+        throw new IllegalArgumentException(
+            label + ".authMechanism must be one of SCRAM-SHA-1, SCRAM-SHA-256, MONGODB-X509, or NONE");
+    }
+  }
+
+
   private static void validateConfiguration(Configuration config) {
-    if (config.getSourceMongoDBUri() == null) {
-      throw new IllegalArgumentException("sourceMongoDBUri is required");
-    }
-    if (config.getTargetMongoDBUri() == null) {
-      throw new IllegalArgumentException("targetMongoDBUri is required");
-    }
-    if (config.getEncryption().getKmsProvider().equals("local") && config.getEncryption().getMasterKeyFilePath() == null) {
+    validateMongoDBConnectionConfig(config.getSourceMongoDB(), "sourceMongoDB");
+    validateMongoDBConnectionConfig(config.getTargetMongoDB(), "targetMongoDB");
+
+    EncryptionConfig enc = config.getEncryption();
+
+    if (enc.getKmsProvider().equals("local") && enc.getMasterKeyFilePath() == null) {
       throw new IllegalArgumentException("encryption.masterKeyFilePath is required");
     }
-    if (config.getEncryption().getKmsProvider().equals("kmip") && config.getEncryption().getKmsEndpoint() == null) {
+    if (enc.getKmsProvider().equals("kmip") && enc.getKmsEndpoint() == null) {
       throw new IllegalArgumentException("encryption.kmsEndpoint is required");
     }
 
-    if (config.getEncryption().getCryptSharedLibPath() == null) {
+    // Validate cryptSharedLibPath
+    if (enc.getCryptSharedLibPath() == null) {
       throw new IllegalArgumentException("encryption.cryptSharedLibPath is required");
     }
 
-    if (config.getEncryption().getKeyStorePath() == null) {
+    // Validate keyStore and trustStore
+    if (enc.getKeyStorePath() == null) {
       throw new IllegalArgumentException("encryption.keyStorePath is required");
     }
-    if (config.getEncryption().getKeyStorePassword() == null) {
+    if (enc.getKeyStorePassword() == null) {
       throw new IllegalArgumentException("encryption.keyStorePassword is required");
     }
-    if (config.getEncryption().getKeyStoreType() == null) {
+    if (enc.getKeyStoreType() == null) {
       throw new IllegalArgumentException("encryption.keyStoreType is required");
     }
-    if (config.getEncryption().getTrustStorePath() == null) {
+    if (enc.getTrustStorePath() == null) {
       throw new IllegalArgumentException("encryption.trustStorePath is required");
     }
-    if (config.getEncryption().getTrustStorePassword() == null) {
+    if (enc.getTrustStorePassword() == null) {
       throw new IllegalArgumentException("encryption.trustStorePassword is required");
     }
-    if (config.getEncryption().getTrustStoreType() == null) {
+    if (enc.getTrustStoreType() == null) {
       throw new IllegalArgumentException("encryption.trustStoreType is required");
     }
   }
