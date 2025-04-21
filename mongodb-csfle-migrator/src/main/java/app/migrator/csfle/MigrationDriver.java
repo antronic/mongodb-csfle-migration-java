@@ -7,6 +7,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.config.Configuration;
@@ -88,13 +89,15 @@ public class MigrationDriver {
   public void setup() {
     // Initialize source and target MongoDB clients
     sourceService = new MongoDBService(config.getSourceMongoDB());
+    sourceService.setup();
     //
     //
     MongoCSFLE csfleClient = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
     csfleClient.setup();
     //
-    MongoClient targetMongoClient = csfleClient.getMongoClient();
-    targetService = new MongoDBService(targetMongoClient);
+    MongoClientSettings.Builder targetMongoClientBuilder = csfleClient.getMongoClientSettingsBuilder();
+    targetService = new MongoDBService(config.getTargetMongoDB(), targetMongoClientBuilder);
+    targetService.setup();
     //
     //
     MigrationConfiguration dbs = this.config.getMigrationConfig();

@@ -1,6 +1,24 @@
 {
-  "sourceMongoDBUri": "mongodb://localhost:27019",
-  "targetMongoDBUri": "mongodb://<username>:<password>@localhost:27020/?socketTimeoutMS=50000&connectTimeoutMS=50000",
+  "sourceMongoDB": {
+    "uri": "mongodb://localhost:27022",
+    "tls": true,
+    "tlsTrustStorePath": "./certs/tls/source/truststore.jks",
+    "tlsTrustStorePassword": "<password>",
+    "tlsKeyStorePath": "./certs/tls/source/client.p12",
+    "tlsKeyStorePassword": "<password>",
+    "authMechanism": "MONGODB-X509",
+    "authSource": "$external"
+  },
+  "targetMongoDB": {
+    "uri": "mongodb://<username>:<password>@localhost:27020/?socketTimeoutMS=50000&connectTimeoutMS=50000",
+    "tls": true,
+    "tlsTrustStorePath": "./certs/tls/target/truststore.jks",
+    "tlsTrustStorePassword": "<password>",
+    "tlsKeyStorePath": "./certs/tls/target/client.p12",
+    "tlsKeyStorePassword": "<password>",
+    "authMechanism": "MONGODB-X509",
+    "authSource": "$external"
+  },
   "encryption": {
     "kmsProvider": "kmip",
     "kmsEndpoint": "your-kmip-hostname:5696",

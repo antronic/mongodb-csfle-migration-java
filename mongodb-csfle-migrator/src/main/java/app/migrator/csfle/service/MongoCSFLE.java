@@ -39,29 +39,32 @@ import app.migrator.csfle.config.SchemaConfiguration;
 import lombok.Getter;
 
 public class MongoCSFLE {
+  // Logger for logging messages
   private final Logger logger = org.slf4j.LoggerFactory.getLogger(MongoCSFLE.class);
-
+  //
+  // MongoDB connection URI
   private final Configuration configuration;
+  private final String mongoUri;
   private String cryptSharedLibPath = "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib";
   //
   // KMS Provider: local
-  private String masterKeyFilePath;
+  private final String masterKeyFilePath;
   // KMS Provider: KMIP
-  private String kmsEndpoint;
-
-  private String mongoUri;
+  private final String kmsEndpoint;
+  //
+  // MongoDB connection configuration
   @Getter
-  private MongoClient mongoClient;
-  private MongoClientSettings mongoClientSettings;
-
+  private MongoClientSettings.Builder mongoClientSettingsBuilder;
+  //
+  // MongoDB client
   private ClientEncryption clientEncryption;
   private ClientEncryptionSettings clientEncryptionSettings;
   private AutoEncryptionSettings autoEncryptionSettings;
-
+  //
+  // Key vault database and collection
   private final String keyVaultDb;
   private final String keyVaultColl;
   private final String keyVaultNamespace;
-
   //
   // KMIP provider configuration
   private String kmsProvider = "local";
@@ -73,13 +76,17 @@ public class MongoCSFLE {
   private HashMap<String, BsonDocument> schemaMap;
 
   public MongoCSFLE(String mongoUri, Configuration configuration) {
-    this.mongoUri = mongoUri;
+    //
+    // Initialize the MongoDB CSFLE service with the provided MongoDB URI and configuration
     this.configuration = configuration;
-
+    this.mongoUri = mongoUri;
+    //
+    // Set up the MongoDB connection configuration
     EncryptionConfiguration encryption = configuration.getEncryption();
     this.kmsProvider = encryption.getKmsProvider();
     this.kmsProviderEnum = KmsProvider.fromString(this.kmsProvider);
     //
+    // Set up the key vault database and collection
     this.keyVaultDb = encryption.getKeyVaultDb();
     this.keyVaultColl = encryption.getKeyVaultColl();
     this.keyVaultNamespace = encryption.getKeyVaultDb() + "." + encryption.getKeyVaultColl();
@@ -140,7 +147,7 @@ public class MongoCSFLE {
     return sslContextMap;
   }
 
-  private void setClient() throws Exception {
+  private void setClientConfiguration() throws Exception {
     // Set up the KMS providers
     Map<String, Object> extraOptions = new HashMap<>();
     extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
@@ -163,7 +170,7 @@ public class MongoCSFLE {
             .kmsProviderSslContextMap(this.createKmipSSLContextMap())
             .build();
 
-    this.mongoClientSettings =
+    this.mongoClientSettingsBuilder =
         MongoClientSettings.builder()
             .applyConnectionString(new ConnectionString(this.mongoUri))
             .applyToConnectionPoolSettings(
@@ -176,8 +183,7 @@ public class MongoCSFLE {
                   builder.connectTimeout(10, TimeUnit.SECONDS);
                   builder.readTimeout(10, TimeUnit.SECONDS);
                 })
-            .autoEncryptionSettings(autoEncryptionSettings)
-            .build();
+            .autoEncryptionSettings(autoEncryptionSettings);
   }
 
   private void setupClientEncryption() throws Exception {
@@ -333,7 +339,6 @@ public class MongoCSFLE {
       return false;
     } catch (IOException e1) {
       logger.error("Error reading crypt shared library: " + e1.getMessage());
-      e1.printStackTrace();
     }
     return false;
   }
@@ -377,9 +382,8 @@ public class MongoCSFLE {
           break;
       }
 
-    } catch (Exception e) {
+    } catch (IOException e) {
       logger.error("Error generating master key: " + e.getMessage());
-      e.printStackTrace();
     }
   }
 
@@ -393,11 +397,9 @@ public class MongoCSFLE {
       setupKmsProviders();
       setupClientEncryption();
       loadSchema();
-      setClient();
-      this.mongoClient = MongoClients.create(this.mongoClientSettings);
+      setClientConfiguration();
     } catch (Exception e) {
       logger.error("Error setting up MongoDB CSFLE: " + e.getMessage());
-      e.printStackTrace();
     }
 
     return this;

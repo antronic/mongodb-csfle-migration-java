@@ -25,17 +25,24 @@ public class MongoDBService implements AutoCloseable {
   @Getter
   private MongoClient client;
   private final String uri;
-  private MongoDBConnectionConfiguration configuration;
+  private final MongoDBConnectionConfiguration configuration;
 
-  public MongoDBService(MongoClient client) {
-    this.client = client;
-    this.uri = null;
-  }
+  private MongoClientSettings.Builder mongoClientSettingsBuilder = MongoClientSettings.builder();
+
+  // public MongoDBService(MongoClient client) {
+  //   this.client = client;
+  //   this.uri = null;
+  // }
 
   public MongoDBService(MongoDBConnectionConfiguration configuration) {
     this.configuration = configuration;
     this.uri = this.configuration.getUri();
-    this.client = this.setupClient();
+  }
+
+  public MongoDBService(MongoDBConnectionConfiguration configuration, MongoClientSettings.Builder mongoClientSettingsBuilder) {
+    this.uri = configuration.getUri();
+    this.configuration = configuration;
+    this.mongoClientSettingsBuilder = mongoClientSettingsBuilder;
   }
 
   private SSLContext setupSSLContext() {
@@ -89,31 +96,37 @@ public class MongoDBService implements AutoCloseable {
     return credential;
   }
 
-  private MongoClient setupClient() {
+  public MongoClient setup() {
     if (uri == null || uri.isEmpty()) {
       throw new IllegalArgumentException("URI must not be null or empty");
     }
-
-    logger.info("setupCredential().toString()");
-
-    MongoClientSettings.Builder builder = MongoClientSettings.builder()
+    //
+    // Setup MongoClientSettings
+    this.mongoClientSettingsBuilder
         .applyConnectionString(new ConnectionString(uri))
         .applyToSslSettings(ssl -> {
           if (configuration.isTls()) {
             ssl.enabled(true);
             ssl.context(setupSSLContext());
-            // ssl.invalidHostNameAllowed(true);
           } else {
             ssl.enabled(false);
           }
         })
-        .credential(setupCredential())
         .applyToConnectionPoolSettings(settings -> settings
             .maxSize(10)
             .minSize(1));
-
+    //
+    // Set credential if authentication is required
+    if (configuration.getAuthMechanism() != null) {
+      MongoCredential credential = setupCredential();
+      if (credential != null) {
+        this.mongoClientSettingsBuilder.credential(credential);
+      }
+    }
+    //
+    // Create the MongoClient
     try {
-      this.client = MongoClients.create(builder.build());
+      this.client = MongoClients.create(this.mongoClientSettingsBuilder.build());
       logger.info("MongoDB client created successfully");
 
       return client;
@@ -152,8 +165,4 @@ public class MongoDBService implements AutoCloseable {
       logger.error("Error during closing: ", e.getMessage());
     }
   }
-
-    // public MongoClient getClient() {
-    //     throw new UnsupportedOperationException("Not supported yet.");
-    // }
 }
