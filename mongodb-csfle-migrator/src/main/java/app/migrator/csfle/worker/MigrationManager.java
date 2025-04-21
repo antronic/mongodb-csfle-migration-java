@@ -117,10 +117,11 @@ public class MigrationManager {
 
     // Print all documents
 
-    // for (Document doc : docs) {
-    //   // Process each document
-    //   logger.info(doc.toJson());
-    // }
+    logger.info("Documents:");
+    for (Document doc : docs) {
+      // Process each document
+      logger.info(doc.toJson());
+    }
 
     // Write data to the target
     targetWriter.writeBatch(docs);
@@ -132,6 +133,8 @@ public class MigrationManager {
     this.batchSize = configuration.getWorker().getMaxBatchSize();
     this.totalCount = getTotalCountInCollection();
     this.batchCount = getTotalRounds();
+
+    logger.info("Total docs count: " + totalCount);
 
     // this.currentBatchSize = Math.min(batchSize, (int) (totalCount - (currentBatchIndex * batchSize)));
     // this.currentBatchCount = Math.min(batchCount, this.getTotalRounds());

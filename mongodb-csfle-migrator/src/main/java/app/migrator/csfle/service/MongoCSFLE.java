@@ -106,7 +106,7 @@ public class MongoCSFLE {
 
     logger.info(
         "KeyStore Path: " + keyStorePath +
-        "\nKeyStore Password: " + keyStorePassword +
+        // "\nKeyStore Password: " + keyStorePassword +
         "\nTrustStore Path: " + trustStorePath +
         "\nTrustStore Password: " + trustStorePassword +
         "\nKeyStore Type: " + keyStoreType +

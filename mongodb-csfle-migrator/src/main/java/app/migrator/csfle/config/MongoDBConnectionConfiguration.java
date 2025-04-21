@@ -11,9 +11,12 @@ public class MongoDBConnectionConfiguration {
   private boolean tls;
   private String authMechanism = "SCRAM-SHA-256";
   private String authSource = "admin";
-  private String tlsCAFile;
-  private String tlsCertificateKeyFile;
-  private String tlsCertificateKeyPassword;
+  private String tlsTrustStorePath;
+  private String tlsTrustStorePassword;
+  private String tlsTrustStoreType = "JKS";
+  private String tlsKeyStorePath;
+  private String tlsKeyStorePassword;
+  private String tlsKeyStoreType = "PKCS12";
   // private String tlsInsecure;
 
   // private String username;
@@ -40,15 +43,15 @@ public class MongoDBConnectionConfiguration {
         // }
         // break;
       case "MONGODB-X509":
-        if (config.getTlsCAFile() == null) {
-          throw new IllegalArgumentException(label + ".tlsCAFile is required");
+        if (config.getTlsTrustStorePath() == null) {
+          throw new IllegalArgumentException(label + ".tlsTrustStorePath is required");
         }
-        if (config.getTlsCertificateKeyFile() == null) {
-          throw new IllegalArgumentException(label + ".tlsCertificateKeyFile is required");
+        if (config.getTlsKeyStorePath() == null) {
+          throw new IllegalArgumentException(label + ".tlsKeyStorePath is required");
         }
-        if (config.getTlsCertificateKeyPassword() == null) {
-          throw new IllegalArgumentException(label + ".tlsCertificateKeyPassword is required");
-        }
+        // if (config.getTlsKeyStorePassword() == null) {
+        //   throw new IllegalArgumentException(label + ".tlsCertificateKeyPassword is required");
+        // }
 
         // TODO:
         // Set authSource to "$external" for MONGODB-X509
