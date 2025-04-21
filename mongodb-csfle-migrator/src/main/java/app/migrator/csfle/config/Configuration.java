@@ -51,7 +51,10 @@ public class Configuration {
 
       // If config file provided, merge with defaults
       if (configPath != null) {
-        Configuration userConfig = mapper.readValue(new File(configPath), Configuration.class);
+        Configuration userConfig = mapper.readValue(
+          new File(configPath),
+          Configuration.class
+          );
         mergeConfigurations(defaultConfig, userConfig);
       }
 
