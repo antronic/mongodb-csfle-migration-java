@@ -1,8 +1,10 @@
 package app.migrator.csfle.config;
 
 import java.io.File;
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.Map;
+
+import org.slf4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -12,13 +14,15 @@ import lombok.Data;
 
 @Data
 public class Configuration {
+  private static final Logger logger =
+      org.slf4j.LoggerFactory.getLogger(Configuration.class);
   // private String sourceMongoDBUri;
   // private String targetMongoDBUri;
-  private MongoDBConnectionConfig sourceMongoDB = new MongoDBConnectionConfig();
-  private MongoDBConnectionConfig targetMongoDB = new MongoDBConnectionConfig();
+  private MongoDBConnectionConfiguration sourceMongoDB = new MongoDBConnectionConfiguration();
+  private MongoDBConnectionConfiguration targetMongoDB = new MongoDBConnectionConfiguration();
 
   private WorkerConfig worker = new WorkerConfig();
-  private EncryptionConfig encryption = new EncryptionConfig();
+  private EncryptionConfiguration encryption = new EncryptionConfiguration();
 
   private SchemaConfiguration schema;
   private String schemaFilePath = "schema.json";
@@ -35,48 +39,6 @@ public class Configuration {
     private int maxBatchWaitTime = 1000; // in millisecondsprivate int maxBatchSize = 100;
     private int retryDelay = 1000; // in milliseconds
     private boolean enableLogging = true;
-  }
-
-  @Data
-  public class EncryptionConfig {
-    private String keyVaultDb = "encryption";
-    private String keyVaultColl = "__keyVault";
-
-    private String kmsProvider = "local";
-    private String cryptSharedLibPath;
-    private Map<String, Object> extraOptions = new HashMap<>();
-    //
-    // KMIP provider configuration
-    // Provider: Local
-    private String masterKeyFilePath;
-    // Provider: KMIP
-    private String kmsEndpoint;
-
-    // private String getKeyVaultNamespace() {
-    //   return keyVaultDb + "." + keyVaultColl;
-    // }
-
-    private String keyStorePath;
-    private String keyStorePassword;
-    private String trustStorePath;
-    private String trustStorePassword;
-    private String keyStoreType;
-    private String trustStoreType;
-  }
-
-  @Data
-  public class MongoDBConnectionConfig {
-    private String uri;
-    private boolean tls;
-    private String authMechanism = "SCRAM-SHA-256";
-    private String authSource = "admin";
-    private String tlsCAFile;
-    private String tlsCertificateKeyFile;
-    private String tlsCertificateKeyPassword;
-    // private String tlsInsecure;
-
-    private String username;
-    private String password;
   }
 
   public static Configuration load(String configPath) {
@@ -96,55 +58,55 @@ public class Configuration {
       validateConfiguration(defaultConfig);
       return defaultConfig;
 
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new RuntimeException("Failed to load configuration", e);
     }
   }
 
   private static void mergeConfigurations(Configuration defaultConfig, Configuration userConfig) {
-    // TODO: Merge MongoDB connection configs
-    // if (userConfig.getSourceMongoDBUri() != null)
-    //   defaultConfig.setSourceMongoDBUri(userConfig.getSourceMongoDBUri());
-    // if (userConfig.getTargetMongoDBUri() != null)
+    // Merge source and target MongoDB configurations
+    MongoDBConnectionConfiguration sourceConfig = userConfig.getSourceMongoDB();
+    MongoDBConnectionConfiguration targetConfig = userConfig.getTargetMongoDB();
 
+    defaultConfig.setSourceMongoDB(sourceConfig);
+    defaultConfig.setTargetMongoDB(targetConfig);
 
-    //   defaultConfig.setTargetMongoDBUri(userConfig.getTargetMongoDBUri());
-    // if (userConfig.getCollectionPrefix() != null)
-    //   defaultConfig.setCollectionPrefix(userConfig.getCollectionPrefix());
 
     // Merge encryption config
     if (userConfig.getEncryption() != null) {
-      EncryptionConfig defaultEnc = defaultConfig.getEncryption();
-      EncryptionConfig userEnc = userConfig.getEncryption();
+      // EncryptionConfiguration defaultEnc = defaultConfig.getEncryption();
+      EncryptionConfiguration userEnc = userConfig.getEncryption();
+
+      defaultConfig.setEncryption(userEnc);
 
       // if (userEnc.getKeyVaultNamespace() != null)
       //   defaultEnc.setKeyVaultNamespace(userEnc.getKeyVaultNamespace());
-      if (userEnc.getKeyVaultDb() != null)
-        defaultEnc.setKeyVaultDb(userEnc.getKeyVaultDb());
-      if (userEnc.getKeyVaultColl() != null)
-        defaultEnc.setKeyVaultColl(userEnc.getKeyVaultColl());
-      if (userEnc.getKmsProvider() != null)
-        defaultEnc.setKmsProvider(userEnc.getKmsProvider());
-      if (userEnc.getMasterKeyFilePath() != null)
-        defaultEnc.setMasterKeyFilePath(userEnc.getMasterKeyFilePath());
-      if (userEnc.getCryptSharedLibPath() != null)
-      if (userEnc.getKmsEndpoint() != null)
-        defaultEnc.setKmsEndpoint(userEnc.getKmsEndpoint());
-        defaultEnc.setCryptSharedLibPath(userEnc.getCryptSharedLibPath());
-      if (userEnc.getExtraOptions() != null)
-        defaultEnc.getExtraOptions().putAll(userEnc.getExtraOptions());
-      if (userEnc.getKeyStorePath() != null)
-        defaultEnc.setKeyStorePath(userEnc.getKeyStorePath());
-      if (userEnc.getKeyStorePassword() != null)
-        defaultEnc.setKeyStorePassword(userEnc.getKeyStorePassword());
-      if (userEnc.getKeyStoreType() != null)
-        defaultEnc.setKeyStoreType(userEnc.getKeyStoreType());
-      if (userEnc.getTrustStorePath() != null)
-        defaultEnc.setTrustStorePath(userEnc.getTrustStorePath());
-      if (userEnc.getTrustStorePassword() != null)
-        defaultEnc.setTrustStorePassword(userEnc.getTrustStorePassword());
-      if (userEnc.getTrustStoreType() != null)
-        defaultEnc.setTrustStoreType(userEnc.getTrustStoreType());
+      // if (userEnc.getKeyVaultDb() != null)
+      //   defaultEnc.setKeyVaultDb(userEnc.getKeyVaultDb());
+      // if (userEnc.getKeyVaultColl() != null)
+      //   defaultEnc.setKeyVaultColl(userEnc.getKeyVaultColl());
+      // if (userEnc.getKmsProvider() != null)
+      //   defaultEnc.setKmsProvider(userEnc.getKmsProvider());
+      // if (userEnc.getMasterKeyFilePath() != null)
+      //   defaultEnc.setMasterKeyFilePath(userEnc.getMasterKeyFilePath());
+      // if (userEnc.getCryptSharedLibPath() != null)
+      // if (userEnc.getKmsEndpoint() != null)
+      //   defaultEnc.setKmsEndpoint(userEnc.getKmsEndpoint());
+      //   defaultEnc.setCryptSharedLibPath(userEnc.getCryptSharedLibPath());
+      // if (userEnc.getExtraOptions() != null)
+      //   defaultEnc.getExtraOptions().putAll(userEnc.getExtraOptions());
+      // if (userEnc.getKeyStorePath() != null)
+      //   defaultEnc.setKeyStorePath(userEnc.getKeyStorePath());
+      // if (userEnc.getKeyStorePassword() != null)
+      //   defaultEnc.setKeyStorePassword(userEnc.getKeyStorePassword());
+      // if (userEnc.getKeyStoreType() != null)
+      //   defaultEnc.setKeyStoreType(userEnc.getKeyStoreType());
+      // if (userEnc.getTrustStorePath() != null)
+      //   defaultEnc.setTrustStorePath(userEnc.getTrustStorePath());
+      // if (userEnc.getTrustStorePassword() != null)
+      //   defaultEnc.setTrustStorePassword(userEnc.getTrustStorePassword());
+      // if (userEnc.getTrustStoreType() != null)
+      //   defaultEnc.setTrustStoreType(userEnc.getTrustStoreType());
     }
 
     // Merge worker config
@@ -161,81 +123,14 @@ public class Configuration {
     }
   }
 
-  private static void validateMongoDBConnectionConfig(MongoDBConnectionConfig config, String label) {
-    if (config.getUri() == null) {
-      throw new IllegalArgumentException(label + ".uri is required");
-    }
-    if (config.getAuthMechanism() == null) {
-      throw new IllegalArgumentException(label + ".authMechanism is required");
-    }
-    switch (config.getAuthMechanism()) {
-      case "SCRAM-SHA-1":
-      case "SCRAM-SHA-256":
-        if (config.getUsername() == null) {
-          throw new IllegalArgumentException(label + ".username is required");
-        }
-        if (config.getPassword() == null) {
-          throw new IllegalArgumentException(label + ".password is required");
-        }
-        break;
-      case "MONGODB-X509":
-        if (config.getTlsCAFile() == null) {
-          throw new IllegalArgumentException(label + ".tlsCAFile is required");
-        }
-        if (config.getTlsCertificateKeyFile() == null) {
-          throw new IllegalArgumentException(label + ".tlsCertificateKeyFile is required");
-        }
-        if (config.getTlsCertificateKeyPassword() == null) {
-          throw new IllegalArgumentException(label + ".tlsCertificateKeyPassword is required");
-        }
-        break;
-      case "NONE":
-        // No authentication required
-        break;
-      default:
-        throw new IllegalArgumentException(
-            label + ".authMechanism must be one of SCRAM-SHA-1, SCRAM-SHA-256, MONGODB-X509, or NONE");
-    }
-  }
-
 
   private static void validateConfiguration(Configuration config) {
-    validateMongoDBConnectionConfig(config.getSourceMongoDB(), "sourceMongoDB");
-    validateMongoDBConnectionConfig(config.getTargetMongoDB(), "targetMongoDB");
+    // Validate MongoDB connection configurations
+    MongoDBConnectionConfiguration.validate(config.getSourceMongoDB(), "sourceMongoDB");
+    MongoDBConnectionConfiguration.validate(config.getTargetMongoDB(), "targetMongoDB");
 
-    EncryptionConfig enc = config.getEncryption();
-
-    if (enc.getKmsProvider().equals("local") && enc.getMasterKeyFilePath() == null) {
-      throw new IllegalArgumentException("encryption.masterKeyFilePath is required");
-    }
-    if (enc.getKmsProvider().equals("kmip") && enc.getKmsEndpoint() == null) {
-      throw new IllegalArgumentException("encryption.kmsEndpoint is required");
-    }
-
-    // Validate cryptSharedLibPath
-    if (enc.getCryptSharedLibPath() == null) {
-      throw new IllegalArgumentException("encryption.cryptSharedLibPath is required");
-    }
-
-    // Validate keyStore and trustStore
-    if (enc.getKeyStorePath() == null) {
-      throw new IllegalArgumentException("encryption.keyStorePath is required");
-    }
-    if (enc.getKeyStorePassword() == null) {
-      throw new IllegalArgumentException("encryption.keyStorePassword is required");
-    }
-    if (enc.getKeyStoreType() == null) {
-      throw new IllegalArgumentException("encryption.keyStoreType is required");
-    }
-    if (enc.getTrustStorePath() == null) {
-      throw new IllegalArgumentException("encryption.trustStorePath is required");
-    }
-    if (enc.getTrustStorePassword() == null) {
-      throw new IllegalArgumentException("encryption.trustStorePassword is required");
-    }
-    if (enc.getTrustStoreType() == null) {
-      throw new IllegalArgumentException("encryption.trustStoreType is required");
-    }
+    // Validate encryption config
+    EncryptionConfiguration.validate(config.getEncryption());
   }
 
   public Configuration loadSchema() {
@@ -261,7 +156,7 @@ public class Configuration {
       }
 
       return this;
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new RuntimeException("Failed to load configuration", e);
     }
   }
@@ -293,7 +188,7 @@ public class Configuration {
         this.migrationConfig = userMigrateTarget;
       }
       return this;
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new RuntimeException("Failed to load configuration", e);
     }
   }

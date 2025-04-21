@@ -22,7 +22,7 @@ public class MigrationManager {
   private String sourceDatabase;
   private String sourceCollection;
 
-  private Configuration configuration;
+  private final Configuration configuration;
 
   private boolean isInitialized = false;
   private int batchSize = 1000;

@@ -59,8 +59,8 @@ class MigrateCommand implements Runnable {
             .loadSchema(schemaPath);
 
         System.out.println("Configuration loaded:");
-        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDBUri());
-        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDBUri());
+        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDB().getUri());
+        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDB().getUri());
         System.out.println(configuration.getMigrationConfig());
 
         MigrationDriver driver = new MigrationDriver(configuration);
@@ -83,7 +83,7 @@ class GenerateDekIdCommand implements Runnable {
         Configuration configuration = Configuration.load(configPath)
             .loadSchema(schemaPath);
 
-        MongoCSFLE mongoCSFLE = new MongoCSFLE(configuration.getTargetMongoDBUri(), configuration);
+        MongoCSFLE mongoCSFLE = new MongoCSFLE(configuration.getTargetMongoDB().getUri(), configuration);
         mongoCSFLE.setup();
         mongoCSFLE.preConfigure();
         String dekId = mongoCSFLE.generateDataKey();
@@ -106,8 +106,8 @@ class ShowConfigCommand implements Runnable {
             .loadSchema(schemaPath);
 
         System.out.println("Configuration loaded:");
-        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDBUri());
-        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDBUri());
+        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDB().getUri());
+        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDB().getUri());
         System.out.println(configuration);
     }
 }

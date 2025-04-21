@@ -22,7 +22,7 @@ public class MigrationDriver {
   private final WorkerManager workerManager;
   private MongoDBService sourceService;
   private MongoDBService targetService;
-  private Map<String, List<String>> collectionsMap = new HashMap<>();
+  private final Map<String, List<String>> collectionsMap = new HashMap<>();
 
   public MigrationDriver(Configuration config) {
     this.config = config;
@@ -87,10 +87,10 @@ public class MigrationDriver {
 
   public void setup() {
     // Initialize source and target MongoDB clients
-    sourceService = new MongoDBService(config.getSourceMongoDBUri());
+    sourceService = new MongoDBService(config.getSourceMongoDB().getUri());
     //
     //
-    MongoCSFLE csfleClient = new MongoCSFLE(config.getTargetMongoDBUri(), config);
+    MongoCSFLE csfleClient = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
     csfleClient.setup();
     //
     MongoClient targetMongoClient = csfleClient.getMongoClient();

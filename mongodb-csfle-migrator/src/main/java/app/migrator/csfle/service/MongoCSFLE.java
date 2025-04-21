@@ -34,7 +34,7 @@ import com.mongodb.client.vault.ClientEncryptions;
 import com.mongodb.connection.SslSettings;
 
 import app.migrator.csfle.config.Configuration;
-import app.migrator.csfle.config.Configuration.EncryptionConfig;
+import app.migrator.csfle.config.EncryptionConfiguration;
 import app.migrator.csfle.config.SchemaConfiguration;
 import lombok.Getter;
 
@@ -76,7 +76,7 @@ public class MongoCSFLE {
     this.mongoUri = mongoUri;
     this.configuration = configuration;
 
-    EncryptionConfig encryption = configuration.getEncryption();
+    EncryptionConfiguration encryption = configuration.getEncryption();
     this.kmsProvider = encryption.getKmsProvider();
     this.kmsProviderEnum = KmsProvider.fromString(this.kmsProvider);
     //

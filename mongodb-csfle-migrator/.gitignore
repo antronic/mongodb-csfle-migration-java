@@ -5,3 +5,6 @@ master-key.txt
 
 # Ignore target directory
 target
+
+lib/*
+mongocryptd.pid
