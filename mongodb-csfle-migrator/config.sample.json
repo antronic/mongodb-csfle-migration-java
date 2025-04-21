@@ -22,6 +22,13 @@
   "encryption": {
     "kmsProvider": "kmip",
     "kmsEndpoint": "your-kmip-hostname:5696",
-    "cryptSharedLibPath": "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib"
+    "cryptSharedLibPath": "./lib/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.6/lib/mongo_crypt_v1.dylib",
+
+    "keyStorePath": "./certs/kmip/kmip-client.p12",
+    "keyStorePassword": "<password>",
+    "trustStorePath": "./certs/kmip/rootCA.jks",
+    "trustStorePassword": "<password>",
+    "keyStoreType": "PKCS12",
+    "trustStoreType": "JKS"
   }
 }
