@@ -206,6 +206,7 @@ public class WorkerManager {
 
   public void awaitTermination() {
     try {
+      this.shutdown();
       executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

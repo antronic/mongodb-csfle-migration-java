@@ -1,5 +1,6 @@
 package app.migrator.csfle.worker.validation;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -11,14 +12,20 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.MongoClient;
 
+import app.migrator.csfle.ValidationDriver;
 import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.service.Report;
 import app.migrator.csfle.service.mongodb.MongoReader;
 import app.migrator.csfle.worker.WorkerManager;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * ValidationManager handles the comparison of data between source and target MongoDB instances.
  * It provides mechanisms to validate data consistency across databases through various validation strategies.
  */
+@Accessors(chain = true)
 public class ValidationManager {
   //----------------------------------------------------------------------
   // Class Variables
@@ -35,6 +42,11 @@ public class ValidationManager {
   private String sourceCollection;
 
   private final Configuration configuration;
+  @Getter
+  @Setter
+  private Report report;
+
+  // private List<Map<String, List<String>>> validationResults;
 
 
   //----------------------------------------------------------------------
@@ -48,14 +60,14 @@ public class ValidationManager {
 
   private boolean isMatched = false;
 
-  private final ValidationStrategy validationStrategy;
+  private final ValidationDriver.ValidationStrategy validationStrategy;
 
   //----------------------------------------------------------------------
   // Constructor
   //----------------------------------------------------------------------
 
   public ValidationManager(
-      ValidationStrategy validationStrategy,
+      ValidationDriver.ValidationStrategy validationStrategy,
       WorkerManager workerManager,
       Configuration configuration
       ) {
@@ -126,37 +138,16 @@ public class ValidationManager {
       logger.info("Skipping validation for {}.{}", sourceDatabase, sourceCollection);
       return;
     }
-
-    // currentBatchIndex = 0;
-
+    if (this.report == null) {
+      throw new IllegalStateException("Report is not set.");
+    }
+    //
     // Setup reader connections
     sourceReader.setup(this.sourceMongoClient, sourceDatabase, sourceCollection);
     targetReader.setup(this.targetMongoClient, sourceDatabase, sourceCollection);
-
-    // Process data in batches
-    // for (int i = 0; i < batchCount; i++) {
-    //   logger.info("Batch: " + i  + " - " + sourceCollection);
-
-    //   // Set the skip and limit for the source and target readers
-    //   currentBatchIndex = i;
-    //   currentBatchSize = Math.min(batchSize, (int) (totalCount - (i * batchSize)));
-
-    //   // Configure readers for current batch
-    //   sourceReader.setSkip(currentBatchIndex * batchSize);
-    //   sourceReader.setLimit(currentBatchSize);
-
-    //   targetReader.setSkip(currentBatchIndex * batchSize);
-    //   targetReader.setLimit(currentBatchSize);
-
-    //   logger.info("-----------------------");
-    //   logger.info("Batch: {} | Source ns: {}.{}", currentBatchIndex, sourceDatabase, sourceCollection);
-    //   logger.info("Limit: " + sourceReader.getLimit());
-    //   logger.info("Skip: " + sourceReader.getSkip());
-    //   logger.info("-----------------------");
-
+    //
     //   Process the batch
     processBatch();
-    // }
   }
 
   //----------------------------------------------------------------------
@@ -176,18 +167,28 @@ public class ValidationManager {
         long accumulatedSourceCount = validateByCount.getAccumulatedSourceCount();
         long accumulatedTargetCount = validateByCount.getAccumulatedTargetCount();
 
+        Map<String, String> mapResult = new LinkedHashMap<>();
+        mapResult.put("database", sourceDatabase);
+        mapResult.put("collection", sourceCollection);
+        mapResult.put("sourceCount", String.valueOf(accumulatedSourceCount));
+        mapResult.put("targetCount", String.valueOf(accumulatedTargetCount));
+
         logger.info("{}.{} Result count: Source = {}, Target = {}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
 
         if (accumulatedSourceCount != accumulatedTargetCount) {
+          mapResult.put("result", "Mismatch");
           logger.warn("{}.{} Document count mismatch: source={}, target={}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
         } else {
+          mapResult.put("result", "Match");
           logger.info("{}.{} Document count match: {}", sourceDatabase, sourceCollection, accumulatedSourceCount);
         }
         logger.info("{}.{} Counting task completed for {}.{}", sourceDatabase, sourceCollection, sourceDatabase, sourceCollection);
+        //
+        // Add data to the report
+        this.report.addData(mapResult.values().toArray(new String[0]));
+        // Create a new report for the validation results
+        logger.info("Result Map: {}", mapResult);
         break;
-  // Perform document comparison validation
-  // ValidateByDocCompare validateByDocCompare = new ValidateByDocCompare(null, null);
-  // validateByDocCompare.compareDocs(sourceReader.read(), targetReader.read());
       case DOC_COMPARE:
           break;
       default:
@@ -249,10 +250,5 @@ public class ValidationManager {
         // Optionally: strip metadata or transform to a stable hash
         return doc.toJson(); // or apply your own canonicalizer
     }
-  }
-
-  public static enum ValidationStrategy {
-    COUNT,
-    DOC_COMPARE
   }
 }

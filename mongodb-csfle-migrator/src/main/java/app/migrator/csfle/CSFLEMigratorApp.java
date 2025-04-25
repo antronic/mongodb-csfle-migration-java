@@ -1,7 +1,10 @@
 package app.migrator.csfle;
 
+import java.io.IOException;
+
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.service.MongoCSFLE;
+import app.migrator.csfle.service.Report;
 import lombok.Getter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -17,7 +20,7 @@ import picocli.CommandLine.Spec;
  * with support for Client-Side Field Level Encryption (CSFLE).
  */
 @Command(name = "mongodb-migrator-csfle", mixinStandardHelpOptions = true, version = "1.0.1e-beta",
-    subcommands = {MigrateCommand.class, GenerateDekIdCommand.class, ShowConfigCommand.class, ValidateCommand.class},
+    subcommands = {MigrateCommand.class, GenerateDekIdCommand.class, ShowConfigCommand.class, ValidateCommand.class, FeatureTestCommand.class},
     description = "CLI app with required command and optional config files")
 public class CSFLEMigratorApp implements Runnable {
 
@@ -214,10 +217,35 @@ class ValidateCommand implements Runnable {
             parent.setup();
             System.out.println("Counting documents in source collection...");
 
-            ValidationDriver driver = new ValidationDriver(parent.configuration);
-            driver.setup();
-            driver.startCount();
+            ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.COUNT);
+            driver.setup()
+                .start();
             // driver.testConcurrent();
+        }
+    }
+}
+
+//==============================================================================
+// Feature test COMMANDS
+//==============================================================================
+@Command(
+    name="feature-test",
+    description = "Feature test commands"
+)
+class FeatureTestCommand implements Runnable {
+
+    @ParentCommand
+    private CSFLEMigratorApp parent;
+
+    @Override
+    public void run() {
+        Report report = new Report("test");
+
+        try {
+            report.generate();
+
+        } catch (IOException e) {
+            System.err.println("Error generating report: " + e.getMessage());
         }
     }
 }
