@@ -1,6 +1,5 @@
 package app.migrator.csfle.worker.validation;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -167,27 +166,25 @@ public class ValidationManager {
         long accumulatedSourceCount = validateByCount.getAccumulatedSourceCount();
         long accumulatedTargetCount = validateByCount.getAccumulatedTargetCount();
 
-        Map<String, String> mapResult = new LinkedHashMap<>();
-        mapResult.put("database", sourceDatabase);
-        mapResult.put("collection", sourceCollection);
-        mapResult.put("sourceCount", String.valueOf(accumulatedSourceCount));
-        mapResult.put("targetCount", String.valueOf(accumulatedTargetCount));
+        String[] resultArr = new String[5];
+        resultArr[0] = sourceDatabase; // database
+        resultArr[1] = sourceCollection; // collection
+        resultArr[2] = String.valueOf(accumulatedSourceCount); // source count
+        resultArr[3] = String.valueOf(accumulatedTargetCount); // target count
 
         logger.info("{}.{} Result count: Source = {}, Target = {}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
 
         if (accumulatedSourceCount != accumulatedTargetCount) {
-          mapResult.put("result", "Mismatch");
+          resultArr[4] = "Mismatch"; // result
           logger.warn("{}.{} Document count mismatch: source={}, target={}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
         } else {
-          mapResult.put("result", "Match");
+          resultArr[4] = "Match"; // result
           logger.info("{}.{} Document count match: {}", sourceDatabase, sourceCollection, accumulatedSourceCount);
         }
         logger.info("{}.{} Counting task completed for {}.{}", sourceDatabase, sourceCollection, sourceDatabase, sourceCollection);
         //
         // Add data to the report
-        this.report.addData(mapResult.values().toArray(new String[0]));
-        // Create a new report for the validation results
-        logger.info("Result Map: {}", mapResult);
+        this.report.addData(resultArr);
         break;
       case DOC_COMPARE:
           break;
