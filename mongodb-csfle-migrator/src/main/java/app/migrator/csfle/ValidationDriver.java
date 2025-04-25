@@ -21,6 +21,10 @@ import app.migrator.csfle.worker.validation.ValidationManager;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+/**
+ * Main driver class for validating MongoDB collections after CSFLE migration.
+ * Handles the setup, execution, and coordination of validation tasks across multiple collections.
+ */
 @Accessors(chain=true)
 public class ValidationDriver {
   private final Logger logger = LoggerFactory.getLogger(ValidationDriver.class);
@@ -36,7 +40,13 @@ public class ValidationDriver {
   //
   // Map to hold collections to be validated
   private final Map<String, List<String>> collectionsMap = new HashMap<>();
-  //
+
+  /**
+   * Creates a new ValidationDriver with specified configuration and validation strategy.
+   *
+   * @param config The application configuration containing MongoDB connection details and worker settings
+   * @param validationStrategy The validation strategy to use (COUNT, DOC_COMPARE)
+   */
   public ValidationDriver(Configuration config, ValidationStrategy validationStrategy) {
     this.config = config;
     this.validationStrategy = validationStrategy;
@@ -44,12 +54,17 @@ public class ValidationDriver {
         new WorkerManager(config.getWorker().getMaxThreads(), config.getWorker().getMaxQueueSize());
   }
 
+  /**
+   * Starts the validation process for all configured collections.
+   * Initializes workers, submits validation tasks, waits for completion,
+   * generates reports, and performs cleanup.
+   */
   public void start() {
     logger.info("\n\ncollectionsMap: {}\n", collectionsMap);
     // Initialize the worker manager with the maximum number of threads and queue size
     workerManager.initializeWorkers();
     //
-    // Iterate over the collections map and submit migration tasks for each collection
+    // Iterate over the collections map and submit validation tasks for each collection
     try {
       for (Map.Entry<String, List<String>> entry : collectionsMap.entrySet()) {
         //
@@ -63,7 +78,7 @@ public class ValidationDriver {
       }
 
       logger.info("All tasks submitted. Waiting for completion...");
-      workerManager.awaitTermination(); // Uncommenting this line to wait for task completion
+      workerManager.awaitTermination(); // Wait for all validation tasks to complete
     } finally {
       logger.info("All tasks completed");
       {
@@ -78,9 +93,10 @@ public class ValidationDriver {
   }
 
   /**
+   * Determines which validation strategy to use for a specific database collection.
    *
-   * @param dbName
-   * @param collectionName
+   * @param dbName The name of the database to validate
+   * @param collectionName The name of the collection to validate
    */
   private void startValidation(String dbName, String collectionName) {
     logger.info("\n\ncollectionsMap: {}\n", collectionsMap);
@@ -88,7 +104,7 @@ public class ValidationDriver {
     // VALIDATION STRATEGIES
     //==============================================================================
     //
-    // Initialize the source and target MongoDB clients
+    // Choose the appropriate validation strategy based on configuration
     switch (this.validationStrategy) {
       case COUNT:
         this.startCount(dbName, collectionName);
@@ -103,29 +119,27 @@ public class ValidationDriver {
   }
 
   /**
-   * Starts the validation process by initializing the worker manager and submitting tasks for each collection.
+   * Initiates a count validation task for a specific database collection.
+   * Creates a validation task that compares document counts between source and target collections.
+   *
+   * @param dbName The name of the database containing the collection
+   * @param collectionName The name of the collection to validate
    */
-  // This method is responsible for iterating over the collections to be validated
-  // and submitting validation tasks to the worker manager.
   private void startCount(String dbName, String collectionName) {
-    // Initialize the worker manager with the maximum number of threads and queue size
-    // workerManager.initializeWorkers();
-    //
     logger.info("Submitting counting task for {}.{}", dbName, collectionName);
     //
-    // Submit the migration task to the worker manager
+    // Submit the validation task to the worker manager
     workerManager.submitTask(collectionName, () -> {
       //
-      // Initialize the migration manager with the source and target MongoDB clients
-      // and the database and collection names
+      // Initialize MongoDB clients for the validation task
       MongoClient sourceMongoClient = sourceService.getClient();
       MongoClient targetMongoClient = targetService.getClient();
       sourceMongoClient.getDatabase(dbName);
       targetMongoClient.getDatabase(dbName);
       //
-      // Create a new instance of the ValidationManager for each task
+      // Create a new instance of the ValidationManager for this task
       ValidationManager validationManager = new ValidationManager(ValidationStrategy.COUNT, workerManager, this.config);
-      // Run the migration process
+      // Run the validation process
       validationManager.setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
         .initialize()
         .setReport(report)
@@ -135,6 +149,10 @@ public class ValidationDriver {
     });
   }
 
+  /**
+   * Test method to verify concurrent task execution functionality.
+   * Submits multiple simple tasks to test thread pool behavior.
+   */
   public void testConcurrent() {
     workerManager.initializeWorkers();
 
@@ -157,8 +175,12 @@ public class ValidationDriver {
   }
 
   /**
-   * Sets up the migration driver by initializing the source and target MongoDB clients.
-   * It also loads the migration configuration and prepares the collections to be migrated.
+   * Sets up the validation driver by initializing MongoDB connections and preparing collections.
+   * Configures CSFLE for target MongoDB, initializes source and target connections,
+   * loads validation configuration, and prepares the report.
+   *
+   * @return This ValidationDriver instance (for method chaining)
+   * @throws RuntimeException if configuration is invalid or no collections are configured for validation
    */
   public ValidationDriver setup() {
      //
@@ -180,13 +202,13 @@ public class ValidationDriver {
     sourceService.setup();
     targetService.setup();
     //
-    // Load migration configuration
+    // Load validation configuration
     ValidationConfiguration dbs = this.config.getValidationConfig();
     //
     // Initialize the report
     setupReport();
     //
-    // Check if the migration configuration is valid
+    // Check if the validation configuration is valid
     if (dbs != null) {
       for (Map.Entry<String, List<String>> entry : dbs.getTargetToValidate().entrySet()) {
         String dbName = entry.getKey();
@@ -215,6 +237,10 @@ public class ValidationDriver {
     return this;
   }
 
+  /**
+   * Configures the validation report format based on the selected validation strategy.
+   * Sets up appropriate column headers for the report.
+   */
   private void setupReport() {
     // Initialize the report
     this.report = new Report(this.validationStrategy.value);
@@ -232,15 +258,22 @@ public class ValidationDriver {
     }
   }
 
+  /**
+   * Releases all resources used during validation.
+   * Shuts down worker threads and closes MongoDB connections.
+   */
   private void shutdown() {
     workerManager.shutdown();
     sourceService.close();
     targetService.close();
   }
 
+  /**
+   * Represents the available validation strategies for comparing MongoDB collections.
+   */
   public static enum ValidationStrategy {
-    COUNT("count"),
-    DOC_COMPARE("doc_compare");
+    COUNT("count"),           // Compare document counts between source and target collections
+    DOC_COMPARE("doc_compare"); // Compare individual document contents between collections
 
     @Getter
     public final String value;

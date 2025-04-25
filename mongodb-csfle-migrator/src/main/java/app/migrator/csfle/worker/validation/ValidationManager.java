@@ -23,6 +23,7 @@ import lombok.experimental.Accessors;
 /**
  * ValidationManager handles the comparison of data between source and target MongoDB instances.
  * It provides mechanisms to validate data consistency across databases through various validation strategies.
+ * This class coordinates the validation process, manages batch processing, and generates validation reports.
  */
 @Accessors(chain = true)
 public class ValidationManager {
@@ -53,11 +54,11 @@ public class ValidationManager {
   //----------------------------------------------------------------------
 
   private boolean isInitialized = false;
-  private int batchSize = 1000;
-  private int batchCount = 0;
-  private long totalCount = 0;
+  private int batchSize = 1000;      // Default batch size for document processing
+  private int batchCount = 0;        // Number of batches to process
+  private long totalCount = 0;       // Total number of documents in the collection
 
-  private boolean isMatched = false;
+  private boolean isMatched = false; // Flag indicating if source and target data match
 
   private final ValidationDriver.ValidationStrategy validationStrategy;
 
@@ -65,6 +66,13 @@ public class ValidationManager {
   // Constructor
   //----------------------------------------------------------------------
 
+  /**
+   * Creates a new ValidationManager with the specified validation strategy and configuration.
+   *
+   * @param validationStrategy The strategy to use for validating data (COUNT, DOC_COMPARE)
+   * @param workerManager The worker manager for handling concurrent validation tasks
+   * @param configuration The application configuration with validation settings
+   */
   public ValidationManager(
       ValidationDriver.ValidationStrategy validationStrategy,
       WorkerManager workerManager,
@@ -84,15 +92,24 @@ public class ValidationManager {
   // Utility Methods
   //----------------------------------------------------------------------
 
+  /**
+   * Gets the total count of documents in the source collection.
+   *
+   * @return The total number of documents
+   */
   private long getTotalCountInCollection() {
-    // Implement the logic to count the total number of documents in the source collection
-    // This could involve using the MongoDB Java driver to query the collection.
+    // Get the total count of documents in the source collection using MongoDB's countDocuments
     return this.sourceMongoClient
         .getDatabase(sourceDatabase)
         .getCollection(sourceCollection)
         .countDocuments();
   }
 
+  /**
+   * Calculates the total number of batches needed based on document count and batch size.
+   *
+   * @return Total number of batches needed for processing
+   */
   private int getTotalRounds() {
     return (int) Math.ceil((double) totalCount / (double) batchSize);
   }
@@ -101,6 +118,15 @@ public class ValidationManager {
   // Setup and Configuration
   //----------------------------------------------------------------------
 
+  /**
+   * Sets up the validation manager with MongoDB clients and collection information.
+   *
+   * @param sourceMongoClient The MongoDB client for the source database
+   * @param targetMongoClient The MongoDB client for the target database
+   * @param sourceDatabase The name of the source database
+   * @param sourceCollection The name of the source collection
+   * @return This ValidationManager instance for method chaining
+   */
   public ValidationManager setup(
       MongoClient sourceMongoClient,
       MongoClient targetMongoClient,
@@ -118,6 +144,14 @@ public class ValidationManager {
   // Validation Execution
   //----------------------------------------------------------------------
 
+  /**
+   * Executes the validation process based on the selected validation strategy.
+   * Validates input parameters, sets up connections, processes data in batches,
+   * and records results in the validation report.
+   *
+   * @throws IllegalStateException if the validation manager is not properly initialized
+   * @throws IllegalArgumentException if validation parameters are invalid
+   */
   public void run() {
     if (!isInitialized) {
       throw new IllegalStateException("ValidationManager is not initialized.");
@@ -152,6 +186,11 @@ public class ValidationManager {
   //----------------------------------------------------------------------
   // Batch Processing
   //----------------------------------------------------------------------
+
+  /**
+   * Processes batches of documents according to the selected validation strategy.
+   * Handles validation logic and records results.
+   */
   private void processBatch() {
     switch (this.validationStrategy) {
       case COUNT:
@@ -193,6 +232,12 @@ public class ValidationManager {
     }
   }
 
+  /**
+   * Initializes the validation manager by setting up batch processing parameters.
+   * Calculates the total document count and required batch count based on the configured batch size.
+   *
+   * @return This ValidationManager instance for method chaining
+   */
   public ValidationManager initialize() {
     // Initialize the validation process
     this.batchSize = configuration.getWorker().getMaxBatchSize();
@@ -207,6 +252,11 @@ public class ValidationManager {
     return this;
   }
 
+  /**
+   * Creates and initializes a ValidateByCount instance for document count validation.
+   *
+   * @return Configured ValidateByCount instance ready to perform count validation
+   */
   private ValidateByCount initializeCounting() {
     ValidateByCount validateByCount = new ValidateByCount(sourceReader, targetReader);
     validateByCount
@@ -223,25 +273,50 @@ public class ValidationManager {
    * This approach verifies that documents were transferred completely and accurately.
    */
   public static class ValidateByDocCompare {
+    /**
+     * Creates a new document comparison validator.
+     *
+     * @param sourceDoc Source document to compare
+     * @param targetDoc Target document to compare against
+     */
     public ValidateByDocCompare(Document sourceDoc, Document targetDoc) {
     }
 
+    /**
+     * Compares two sets of documents by their _id field and contents.
+     * Reports any missing or mismatched documents between source and target.
+     *
+     * @param sourceDocs List of documents from the source collection
+     * @param targetDocs List of documents from the target collection
+     */
     private void compareDocs(List<Document> sourceDocs, List<Document> targetDocs) {
+      // Create a map of target documents by their _id for efficient lookups
       Map<Object, Document> targetById = targetDocs.stream()
           .collect(Collectors.toMap(doc -> doc.get("_id"), Function.identity()));
 
+      // Compare each source document to its corresponding target document
       for (Document src : sourceDocs) {
           Object id = src.get("_id");
           Document tgt = targetById.get(id);
 
           if (tgt == null) {
+              // Document exists in source but not in target
               logger.warn("Missing document in target: _id={}", id);
           } else if (!normalize(src).equals(normalize(tgt))) {
+              // Documents exist in both, but contents don't match
               logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
           }
       }
     }
 
+    /**
+     * Normalizes document representation for consistent comparison.
+     * Helps ensure that documents with the same logical content but different
+     * representations are properly identified as matching.
+     *
+     * @param doc Document to normalize
+     * @return Normalized string representation of the document
+     */
     private String normalize(Document doc) {
         // Normalize by converting to canonical JSON (sorted keys if needed)
         // Optionally: strip metadata or transform to a stable hash
