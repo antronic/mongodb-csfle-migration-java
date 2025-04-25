@@ -1,4 +1,4 @@
-package app.migrator.csfle.worker;
+package app.migrator.csfle.service.mongodb;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +15,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.InsertManyOptions;
 
-public class MigrationTargetWriter {
-    private static final Logger logger = LoggerFactory.getLogger(MigrationTargetWriter.class);
+public class MongoWriter {
+    private static final Logger logger = LoggerFactory.getLogger(MongoWriter.class);
     private MongoClient mongoClient;
     private String targetDatabase;
     private String targetCollection;
@@ -160,3 +160,4 @@ public class MigrationTargetWriter {
         failedDocuments.clear();
     }
 }
+

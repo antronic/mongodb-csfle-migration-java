@@ -11,32 +11,37 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.config.Configuration;
-import app.migrator.csfle.config.MigrationConfiguration;
+import app.migrator.csfle.config.ValidationConfiguration;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
-import app.migrator.csfle.worker.MigrationManager;
 import app.migrator.csfle.worker.WorkerManager;
+import app.migrator.csfle.worker.validation.ValidationManager;
 
-public class MigrationDriver {
-  private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
+public class ValidationDriver {
+  private final Logger logger = LoggerFactory.getLogger(ValidationDriver.class);
   private final Configuration config;
   private final WorkerManager workerManager;
+  //
+  // MongoDB services for source and target databases
   private MongoDBService sourceService;
   private MongoDBService targetService;
+  //
+  // Map to hold collections to be validated
   private final Map<String, List<String>> collectionsMap = new HashMap<>();
-
-  public MigrationDriver(Configuration config) {
+  //
+  public ValidationDriver(Configuration config) {
     this.config = config;
     this.workerManager =
         new WorkerManager(config.getWorker().getMaxThreads(), config.getWorker().getMaxQueueSize());
   }
 
   /**
-   * Starts the migration process by initializing the worker manager and submitting tasks for each collection.
+   * Starts the validation process by initializing the worker manager and submitting tasks for each collection.
    */
-  // This method is responsible for iterating over the collections to be migrated
-  // and submitting migration tasks to the worker manager.
-  public void startMigration() {
+  // This method is responsible for iterating over the collections to be validated
+  // and submitting validation tasks to the worker manager.
+  public void startCount() {
+    logger.info("\n\ncollectionsMap: {}\n", collectionsMap);
     // Initialize the worker manager with the maximum number of threads and queue size
     workerManager.initializeWorkers();
     //
@@ -48,12 +53,10 @@ public class MigrationDriver {
         //
         // Check if the collections list is not empty
         for (String collectionName : collections) {
-          logger.info("Submitting migration task for {}.{}", dbName, collectionName);
+          logger.info("Submitting counting task for {}.{}", dbName, collectionName);
           //
           // Submit the migration task to the worker manager
           workerManager.submitTask(collectionName, () -> {
-            // Create a new instance of the MigrationManager for each task
-            MigrationManager migrationManager = new MigrationManager(workerManager, this.config);
             //
             // Initialize the migration manager with the source and target MongoDB clients
             // and the database and collection names
@@ -62,17 +65,44 @@ public class MigrationDriver {
             sourceMongoClient.getDatabase(dbName);
             targetMongoClient.getDatabase(dbName);
             //
+            // Create a new instance of the ValidationManager for each task
+            ValidationManager validationManager = new ValidationManager(ValidationManager.ValidationStrategy.COUNT, workerManager, this.config);
             // Run the migration process
-            migrationManager
-              .setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
+            validationManager.setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
               .initialize()
               .run();
+
+            logger.info("Counting task completed for {}.{}", dbName, collectionName);
           });
         }
       }
+
+      logger.info("All tasks submitted. Waiting for completion...");
+      // workerManager.awaitTermination();
     } finally {
       shutdown();
     }
+  }
+
+  public void testConcurrent() {
+    workerManager.initializeWorkers();
+
+    for (int i = 0; i < 10; i++) {
+      workerManager.submitTask("i---" + i, () -> {
+        try {
+          Thread.sleep(1000);
+
+          logger.info("Task completed {}", Thread.currentThread().getName());
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      });
+    }
+
+    logger.info("All tasks submitted. Waiting for completion...");
+
+    workerManager.shutdown();
+    logger.info("All tasks completed");
   }
 
   /**
@@ -100,29 +130,33 @@ public class MigrationDriver {
     targetService.setup();
     //
     // Load migration configuration
-    MigrationConfiguration dbs = this.config.getMigrationConfig();
+    ValidationConfiguration dbs = this.config.getValidationConfig();
     //
     // Check if the migration configuration is valid
     if (dbs != null) {
-      for (Map.Entry<String, List<String>> entry : dbs.getTargetToMigrate().entrySet()) {
+      for (Map.Entry<String, List<String>> entry : dbs.getTargetToValidate().entrySet()) {
         String dbName = entry.getKey();
         List<String> collections = entry.getValue();
-
+        //
+        // Check if the collections list is not empty
         if (collections != null && !collections.isEmpty()) {
+          //
+          // Add the database name and collections to the collections map
+          logger.info("Adding {}.{} to collections map", dbName, collections);
           this.collectionsMap.put(dbName, collections);
         }
       }
     } else {
-      logger.error("Migration configuration is null. Please check your configuration.");
-      throw new RuntimeException("Migration configuration is null.");
+      logger.error("Validation configuration is null. Please check your configuration.");
+      throw new RuntimeException("Validation configuration is null.");
     }
     //
     //
     if (this.collectionsMap.isEmpty()) {
-      logger.error("No collections to migrate. Please check your configuration.");
-      throw new RuntimeException("No collections to migrate.");
+      logger.error("No collections to validate. Please check your configuration.");
+      throw new RuntimeException("No collections to validate.");
     }
-    logger.info("Collections to migrate: {}", this.collectionsMap);
+    logger.info("Collections to validate: {}", this.collectionsMap);
   }
 
   private void shutdown() {

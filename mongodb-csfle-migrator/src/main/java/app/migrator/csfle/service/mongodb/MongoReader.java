@@ -1,27 +1,38 @@
-package app.migrator.csfle.worker;
+package app.migrator.csfle.service.mongodb;
 
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
-import lombok.Setter;
+import com.mongodb.client.model.CountOptions;
 
-public class MigrationSourceReader {
-  private static final Logger logger = LoggerFactory.getLogger(MigrationSourceReader.class);
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
+public class MongoReader {
+  private static final Logger logger = LoggerFactory.getLogger(MongoReader.class);
   private MongoClient mongoClient;
-  private String sourceDatabase;
-  private String sourceCollection;
+  @Getter
+  private String database;
+  @Getter
+  private String collection;
 
   @Setter
+  @Getter
   private int skip;
   @Setter
+  @Getter
   private int limit;
 
   public void setup(MongoClient mongoClient, String sourceDatabase, String sourceCollection) {
     this.mongoClient = mongoClient;
-    this.sourceDatabase = sourceDatabase;
-    this.sourceCollection = sourceCollection;
+    this.database = sourceDatabase;
+    this.collection = sourceCollection;
   }
 
   // public void read() {
@@ -48,12 +59,28 @@ public class MigrationSourceReader {
     // logger.info("Skipping {} documents and limiting to {} documents", skip, limit);
 
     FindIterable<Document> docs = mongoClient
-      .getDatabase(sourceDatabase)
-      .getCollection(sourceCollection)
+      .getDatabase(database)
+      .getCollection(collection)
       .find()
         .skip(skip)
         .limit(limit);
 
     return docs;
+  }
+
+  public long count(Bson filter) {
+    // Set skip and limit options for counting
+    CountOptions countOptions = new CountOptions()
+      .skip(this.skip)
+      .limit(this.limit);
+
+    long count = mongoClient
+      .getDatabase(database)
+      .getCollection(collection)
+      .countDocuments(filter, countOptions);
+
+    // logger.info("Counted {} documents in {}.{} with filter: {}", count, sourceDatabase, sourceCollection, filter);
+
+    return count;
   }
 }

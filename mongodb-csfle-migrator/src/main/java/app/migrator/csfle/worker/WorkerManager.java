@@ -1,10 +1,17 @@
 package app.migrator.csfle.worker;
 
-import java.util.concurrent.*;
 import java.util.Map;
-import lombok.Data;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.Data;
 
 /**
  * Manages worker threads for MongoDB collection migration tasks. Handles task queuing, worker
@@ -153,6 +160,7 @@ public class WorkerManager {
       try {
         task.getTask().run();
       } finally {
+        logger.info("Task completed for collection: {}", task.getCollection());
         status.setBusy(false);
         status.setCurrentCollection(null);
         status.setProcessedDocuments(status.getProcessedDocuments() + 1);
@@ -192,6 +200,14 @@ public class WorkerManager {
       }
     } catch (InterruptedException e) {
       executorService.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public void awaitTermination() {
+    try {
+      executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
   }

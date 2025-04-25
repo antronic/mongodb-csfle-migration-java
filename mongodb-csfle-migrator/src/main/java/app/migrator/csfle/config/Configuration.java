@@ -16,11 +16,12 @@ import lombok.Data;
 public class Configuration {
   private static final Logger logger =
       org.slf4j.LoggerFactory.getLogger(Configuration.class);
-  // private String sourceMongoDBUri;
-  // private String targetMongoDBUri;
+  //
+  // MongoDB connection configurations
   private MongoDBConnectionConfiguration sourceMongoDB = new MongoDBConnectionConfiguration();
   private MongoDBConnectionConfiguration targetMongoDB = new MongoDBConnectionConfiguration();
-
+  //
+  // Encryption configuration
   private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfiguration encryption = new EncryptionConfiguration();
 
@@ -30,6 +31,9 @@ public class Configuration {
 
   private MigrationConfiguration migrationConfig;
   private String migrationConfigFilePath = "migration-config.json";
+
+  private ValidationConfiguration validationConfig;
+  private String validationConfigFilePath = "validation-config.json";
 
   @Data
   public static class WorkerConfig {
@@ -81,35 +85,6 @@ public class Configuration {
       EncryptionConfiguration userEnc = userConfig.getEncryption();
 
       defaultConfig.setEncryption(userEnc);
-
-      // if (userEnc.getKeyVaultNamespace() != null)
-      //   defaultEnc.setKeyVaultNamespace(userEnc.getKeyVaultNamespace());
-      // if (userEnc.getKeyVaultDb() != null)
-      //   defaultEnc.setKeyVaultDb(userEnc.getKeyVaultDb());
-      // if (userEnc.getKeyVaultColl() != null)
-      //   defaultEnc.setKeyVaultColl(userEnc.getKeyVaultColl());
-      // if (userEnc.getKmsProvider() != null)
-      //   defaultEnc.setKmsProvider(userEnc.getKmsProvider());
-      // if (userEnc.getMasterKeyFilePath() != null)
-      //   defaultEnc.setMasterKeyFilePath(userEnc.getMasterKeyFilePath());
-      // if (userEnc.getCryptSharedLibPath() != null)
-      // if (userEnc.getKmsEndpoint() != null)
-      //   defaultEnc.setKmsEndpoint(userEnc.getKmsEndpoint());
-      //   defaultEnc.setCryptSharedLibPath(userEnc.getCryptSharedLibPath());
-      // if (userEnc.getExtraOptions() != null)
-      //   defaultEnc.getExtraOptions().putAll(userEnc.getExtraOptions());
-      // if (userEnc.getKeyStorePath() != null)
-      //   defaultEnc.setKeyStorePath(userEnc.getKeyStorePath());
-      // if (userEnc.getKeyStorePassword() != null)
-      //   defaultEnc.setKeyStorePassword(userEnc.getKeyStorePassword());
-      // if (userEnc.getKeyStoreType() != null)
-      //   defaultEnc.setKeyStoreType(userEnc.getKeyStoreType());
-      // if (userEnc.getTrustStorePath() != null)
-      //   defaultEnc.setTrustStorePath(userEnc.getTrustStorePath());
-      // if (userEnc.getTrustStorePassword() != null)
-      //   defaultEnc.setTrustStorePassword(userEnc.getTrustStorePassword());
-      // if (userEnc.getTrustStoreType() != null)
-      //   defaultEnc.setTrustStoreType(userEnc.getTrustStoreType());
     }
 
     // Merge worker config
@@ -189,6 +164,32 @@ public class Configuration {
           );
 
         this.migrationConfig = userMigrateTarget;
+      }
+      return this;
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to load configuration", e);
+    }
+  }
+
+  public Configuration loadValidationTarget() {
+    return loadValidationTarget(this.validationConfigFilePath);
+  }
+
+  public Configuration loadValidationTarget(String nsPath) {
+    ObjectMapper mapper =
+        new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    try {
+      // If config file provided, merge with defaults
+      if (nsPath != null) {
+        ValidationConfiguration userValidation =
+          mapper.readValue(
+            new File(nsPath),
+            ValidationConfiguration.class
+          );
+
+        this.validationConfig = userValidation;
       }
       return this;
     } catch (IOException e) {

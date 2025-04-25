@@ -9,13 +9,15 @@ import org.slf4j.Logger;
 import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.service.mongodb.MongoReader;
+import app.migrator.csfle.service.mongodb.MongoWriter;
 
 public class MigrationManager {
   private static final Logger logger =
       org.slf4j.LoggerFactory.getLogger(MigrationManager.class);
   private final WorkerManager workerManager;
-  private final MigrationSourceReader sourceReader;
-  private final MigrationTargetWriter targetWriter;
+  private final MongoReader sourceReader;
+  private final MongoWriter targetWriter;
 
   private MongoClient sourceMongoClient;
   private MongoClient targetMongoClient;
@@ -38,8 +40,8 @@ public class MigrationManager {
       ) {
     this.workerManager = workerManager;
     this.configuration = configuration;
-    this.sourceReader = new MigrationSourceReader();
-    this.targetWriter = new MigrationTargetWriter();
+    this.sourceReader = new MongoReader();
+    this.targetWriter = new MongoWriter();
   }
 
   private long getTotalCountInCollection() {
@@ -81,11 +83,16 @@ public class MigrationManager {
     if (batchSize <= 0) {
       throw new IllegalArgumentException("Batch size must be greater than zero.");
     }
-
-
+    if (totalCount <= 0) {
+      // Skip the validation if there are no documents to process
+      logger.info("No documents to process in the source collection. {}", sourceCollection);
+      logger.info("Skipping validation for {}.{}", sourceDatabase, sourceCollection);
+      return;
+    }
+    //
     currentBatchIndex = 0;
     currentBatchCount = getTotalRounds();
-
+    //
     // Implement the logic to run the migration process
     // This could involve reading data from the source, processing it,
     // and writing it to the target database.
@@ -116,12 +123,11 @@ public class MigrationManager {
     logger.info("Read " + docs.size() + " documents.");
 
     // Print all documents
-
-    logger.info("Documents:");
-    for (Document doc : docs) {
-      // Process each document
-      logger.info(doc.toJson());
-    }
+    // logger.info("Documents:");
+    // for (Document doc : docs) {
+    //   // Process each document
+    //   logger.info(doc.toJson());
+    // }
 
     // Write data to the target
     targetWriter.writeBatch(docs);

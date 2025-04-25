@@ -1,0 +1,10 @@
+{
+  "targetToValidate": {
+    "app": [
+      "users", "games"
+    ],
+    "app_2": [ "movies" ],
+    "app_3": [ "cities", "anime" ],
+    "app_4": [ "pets", "gadgets" ]
+  }
+}
