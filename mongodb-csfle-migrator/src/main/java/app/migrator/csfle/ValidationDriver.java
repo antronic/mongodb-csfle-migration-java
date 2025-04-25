@@ -111,9 +111,7 @@ public class ValidationDriver {
         break;
 
       case DOC_COMPARE:
-        // this.report
-        //   .setHeaders(new String[] { "Database", "Collection", "Comparison Result" });
-        // startDocCompare(dbName, collectionName);
+        this.startDocCompare(dbName, collectionName);
         break;
     }
   }
@@ -149,29 +147,29 @@ public class ValidationDriver {
     });
   }
 
-  /**
-   * Test method to verify concurrent task execution functionality.
-   * Submits multiple simple tasks to test thread pool behavior.
-   */
-  public void testConcurrent() {
-    workerManager.initializeWorkers();
+  private void startDocCompare(String dbName, String collectionName) {
+    logger.info("Submitting document comparison task for {}.{}", dbName, collectionName);
+    //
+    // Submit the validation task to the worker manager
+    workerManager.submitTask(collectionName, () -> {
+      //
+      // Initialize MongoDB clients for the validation task
+      MongoClient sourceMongoClient = sourceService.getClient();
+      MongoClient targetMongoClient = targetService.getClient();
+      sourceMongoClient.getDatabase(dbName);
+      targetMongoClient.getDatabase(dbName);
+      //
+      // Create a new instance of the ValidationManager for this task
+      ValidationManager validationManager = new ValidationManager(ValidationStrategy.DOC_COMPARE, workerManager, this.config);
+      // Run the validation process
+      validationManager.setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
+        .initialize()
+        .setReport(report)
+        .run();
 
-    for (int i = 0; i < 10; i++) {
-      workerManager.submitTask("i---" + i, () -> {
-        try {
-          Thread.sleep(1000);
+      logger.info("Document comparison task completed for {}.{}", dbName, collectionName);
+    });
 
-          logger.info("Task completed {}", Thread.currentThread().getName());
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-      });
-    }
-
-    logger.info("All tasks submitted. Waiting for completion...");
-
-    workerManager.shutdown();
-    logger.info("All tasks completed");
   }
 
   /**
@@ -251,8 +249,8 @@ public class ValidationDriver {
         break;
 
       case DOC_COMPARE:
-        // this.report
-        //   .setHeaders(new String[] { "Database", "Collection", "Comparison Result" });
+        this.report
+          .setHeaders(new String[] { "Database", "Collection", "Total Source Documents", "Comparison Result" });
         // startDocCompare(dbName, collectionName);
         break;
     }

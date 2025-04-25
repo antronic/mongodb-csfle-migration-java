@@ -1,11 +1,5 @@
 package app.migrator.csfle.worker.validation;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,7 +173,7 @@ public class ValidationManager {
     sourceReader.setup(this.sourceMongoClient, sourceDatabase, sourceCollection);
     targetReader.setup(this.targetMongoClient, sourceDatabase, sourceCollection);
     //
-    //   Process the batch
+    // Process the batch
     processBatch();
   }
 
@@ -192,41 +186,59 @@ public class ValidationManager {
    * Handles validation logic and records results.
    */
   private void processBatch() {
+    logger.info("All tasks submitted. Waiting for completion...");
     switch (this.validationStrategy) {
       case COUNT:
-        logger.info("All tasks submitted. Waiting for completion...");
-        // Perform counting validation
-        ValidateByCount validateByCount = initializeCounting();
-        validateByCount.count();
-        //
-        //----------------------------------------------------------------------
-        // Results Analysis
-        //----------------------------------------------------------------------
-        long accumulatedSourceCount = validateByCount.getAccumulatedSourceCount();
-        long accumulatedTargetCount = validateByCount.getAccumulatedTargetCount();
+        {
+          // Perform counting validation
+          ValidateByCount validateByCount = initializeCounting();
+          validateByCount.count();
+          //
+          //----------------------------------------------------------------------
+          // Results Analysis
+          //----------------------------------------------------------------------
+          long accumulatedSourceCount = validateByCount.getAccumulatedSourceCount();
+          long accumulatedTargetCount = validateByCount.getAccumulatedTargetCount();
 
-        String[] resultArr = new String[5];
-        resultArr[0] = sourceDatabase; // database
-        resultArr[1] = sourceCollection; // collection
-        resultArr[2] = String.valueOf(accumulatedSourceCount); // source count
-        resultArr[3] = String.valueOf(accumulatedTargetCount); // target count
+          String[] resultArr = new String[5];
+          resultArr[0] = sourceDatabase; // database
+          resultArr[1] = sourceCollection; // collection
+          resultArr[2] = String.valueOf(accumulatedSourceCount); // source count
+          resultArr[3] = String.valueOf(accumulatedTargetCount); // target count
 
-        logger.info("{}.{} Result count: Source = {}, Target = {}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
+          logger.info("{}.{} Result count: Source = {}, Target = {}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
 
-        if (accumulatedSourceCount != accumulatedTargetCount) {
-          resultArr[4] = "Mismatch"; // result
-          logger.warn("{}.{} Document count mismatch: source={}, target={}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
-        } else {
-          resultArr[4] = "Match"; // result
-          logger.info("{}.{} Document count match: {}", sourceDatabase, sourceCollection, accumulatedSourceCount);
+          if (accumulatedSourceCount != accumulatedTargetCount) {
+            resultArr[4] = "Mismatch"; // result
+            logger.warn("{}.{} Document count mismatch: source={}, target={}", sourceDatabase, sourceCollection, accumulatedSourceCount, accumulatedTargetCount);
+          } else {
+            resultArr[4] = "Match"; // result
+            logger.info("{}.{} Document count match: {}", sourceDatabase, sourceCollection, accumulatedSourceCount);
+          }
+          logger.info("{}.{} Counting task completed for {}.{}", sourceDatabase, sourceCollection, sourceDatabase, sourceCollection);
+          //
+          // Add data to the report
+          this.report.addData(resultArr);
         }
-        logger.info("{}.{} Counting task completed for {}.{}", sourceDatabase, sourceCollection, sourceDatabase, sourceCollection);
-        //
-        // Add data to the report
-        this.report.addData(resultArr);
         break;
       case DOC_COMPARE:
-          break;
+        {
+          ValidateByDocCompare validateByDocCompare = initializeDocCompare();
+          validateByDocCompare.run();
+
+          String[] resultArr = new String[4];
+          resultArr[0] = sourceDatabase; // database
+          resultArr[1] = sourceCollection; // collection
+          resultArr[2] = String.valueOf(validateByDocCompare.getTotalDocs()); // total docs
+
+          boolean isValid = validateByDocCompare.isValid();
+          resultArr[3] = isValid ? "Match" : "Mismatch"; // result
+
+          this.report.addData(resultArr);
+
+          logger.info("Document comparison validation result: {}", isValid ? "Valid" : "Invalid");
+        }
+        break;
       default:
           throw new IllegalArgumentException("Unknown validation strategy: " + this.validationStrategy);
     }
@@ -267,60 +279,18 @@ public class ValidationManager {
     return validateByCount;
   }
 
-
   /**
-   * Performs deeper validation by comparing document contents between source and target.
-   * This approach verifies that documents were transferred completely and accurately.
+   * Creates and initializes a ValidateByDocCompare instance for document content validation.
+   *
+   * @return Configured ValidateByDocCompare instance ready to perform document comparison validation
    */
-  public static class ValidateByDocCompare {
-    /**
-     * Creates a new document comparison validator.
-     *
-     * @param sourceDoc Source document to compare
-     * @param targetDoc Target document to compare against
-     */
-    public ValidateByDocCompare(Document sourceDoc, Document targetDoc) {
-    }
+  private ValidateByDocCompare initializeDocCompare() {
+    ValidateByDocCompare validateByDocCompare = new ValidateByDocCompare(sourceReader, targetReader);
+    validateByDocCompare
+      .setBatchSize(batchSize)
+      .setTotalBatch(batchCount)
+      .setTotalDocs(totalCount);
 
-    /**
-     * Compares two sets of documents by their _id field and contents.
-     * Reports any missing or mismatched documents between source and target.
-     *
-     * @param sourceDocs List of documents from the source collection
-     * @param targetDocs List of documents from the target collection
-     */
-    private void compareDocs(List<Document> sourceDocs, List<Document> targetDocs) {
-      // Create a map of target documents by their _id for efficient lookups
-      Map<Object, Document> targetById = targetDocs.stream()
-          .collect(Collectors.toMap(doc -> doc.get("_id"), Function.identity()));
-
-      // Compare each source document to its corresponding target document
-      for (Document src : sourceDocs) {
-          Object id = src.get("_id");
-          Document tgt = targetById.get(id);
-
-          if (tgt == null) {
-              // Document exists in source but not in target
-              logger.warn("Missing document in target: _id={}", id);
-          } else if (!normalize(src).equals(normalize(tgt))) {
-              // Documents exist in both, but contents don't match
-              logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
-          }
-      }
-    }
-
-    /**
-     * Normalizes document representation for consistent comparison.
-     * Helps ensure that documents with the same logical content but different
-     * representations are properly identified as matching.
-     *
-     * @param doc Document to normalize
-     * @return Normalized string representation of the document
-     */
-    private String normalize(Document doc) {
-        // Normalize by converting to canonical JSON (sorted keys if needed)
-        // Optionally: strip metadata or transform to a stable hash
-        return doc.toJson(); // or apply your own canonicalizer
-    }
+    return validateByDocCompare;
   }
 }

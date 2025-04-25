@@ -35,18 +35,6 @@ public class ValidateByCount {
     this.targetReader = targetReader;
   }
 
-  public ValidateByCount setup(
-    int batchSize,
-    int totalBatch,
-    long totalDocs
-  ) {
-    this.batchSize = batchSize;
-    this.totalBatch = totalBatch;
-    this.totalDocs = totalDocs;
-
-    return this;
-  }
-
   public void count() {
     Bson filter = new Document(
       "_id",

@@ -165,7 +165,8 @@ class ShowConfigCommand implements Runnable {
     name="validate",
     description = "Validate the configuration",
     subcommands= {
-        ValidateCommand.ValidateByCountCommand.class
+        ValidateCommand.ValidateByCountCommand.class,
+        ValidateCommand.ValidateByDocCompareCommand.class
     }
 )
 class ValidateCommand implements Runnable {
@@ -218,6 +219,27 @@ class ValidateCommand implements Runnable {
             System.out.println("Counting documents in source collection...");
 
             ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.COUNT);
+            driver.setup()
+                .start();
+            // driver.testConcurrent();
+        }
+    }
+
+    /**
+     *
+     */
+    @Command(name="doc-compare", description = "Count the number of documents in the source collection")
+    static class ValidateByDocCompareCommand implements Runnable {
+
+        @ParentCommand
+        private ValidateCommand parent;
+
+        @Override
+        public void run() {
+            parent.setup();
+            System.out.println("Counting documents in source collection...");
+
+            ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.DOC_COMPARE);
             driver.setup()
                 .start();
             // driver.testConcurrent();

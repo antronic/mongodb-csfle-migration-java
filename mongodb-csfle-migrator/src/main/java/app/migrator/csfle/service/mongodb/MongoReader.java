@@ -52,6 +52,10 @@ public class MongoReader {
   // }
 
   public FindIterable<Document> read() {
+    return this.read(new Document());
+  }
+
+  public FindIterable<Document> read(Bson filter) {
     // Implement the logic to find all documents in the source collection
     // and return them as a list or stream.
     // This could involve using the MongoDB Java driver to query the collection.
@@ -61,7 +65,7 @@ public class MongoReader {
     FindIterable<Document> docs = mongoClient
       .getDatabase(database)
       .getCollection(collection)
-      .find()
+      .find(filter)
         .skip(skip)
         .limit(limit);
 
