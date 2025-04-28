@@ -193,6 +193,11 @@ public class MongoCSFLE {
   }
 
   private void setupClientEncryption() throws Exception {
+    if (this.mongoClientSettingsBuilder == null) {
+      this.mongoClientSettingsBuilder = MongoClientSettings.builder()
+        .applyConnectionString(new ConnectionString(this.mongoUri));
+    }
+
     this.clientEncryptionSettings =
         ClientEncryptionSettings.builder()
             .keyVaultMongoClientSettings(
