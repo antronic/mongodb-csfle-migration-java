@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.service.MongoCSFLE;
+import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.service.Report;
 import lombok.Getter;
 import picocli.CommandLine;
@@ -113,12 +114,23 @@ class GenerateDekIdCommand implements Runnable {
         // Configuration files
         String configPath = parent.getConfigPath();
         String schemaPath = parent.getSchemaPath();
-        Configuration configuration = Configuration.load(configPath)
+        Configuration config = Configuration.load(configPath)
             .loadSchema(schemaPath);
 
-        MongoCSFLE mongoCSFLE = new MongoCSFLE(configuration.getTargetMongoDB().getUri(), configuration);
-        mongoCSFLE.setup();
-        mongoCSFLE.preConfigure();
+
+        MongoDBService mongoService = new MongoDBService(config.getTargetMongoDB());
+        mongoService.setup();
+        MongoCSFLE mongoCSFLE = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
+
+        mongoCSFLE
+            .setMongoClientSettingsBuilder(mongoService.getMongoClientSettingsBuilder())
+            .setup()
+            .setMongoClient(mongoService.getClient())
+                .preConfigure();
+        // Initialize target MongoDB client with CSFLE
+        // MongoClientSettings.Builder mongoClientBuilder = mongoCSFLE.getMongoClientSettingsBuilder();
+        // MongoDBService mongoDBService = new MongoDBService(configuration.getTargetMongoDB(), mongoClientBuilder);
+
         String dekId = mongoCSFLE.generateDataKey();
         System.out.println("Generated DEK ID: " + dekId);
     }

@@ -24,7 +24,6 @@ import com.mongodb.ClientEncryptionSettings;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
@@ -37,7 +36,10 @@ import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.EncryptionConfiguration;
 import app.migrator.csfle.config.SchemaConfiguration;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
+@Accessors(chain=true)
 public class MongoCSFLE {
   // Logger for logging messages
   private final Logger logger = org.slf4j.LoggerFactory.getLogger(MongoCSFLE.class);
@@ -54,10 +56,12 @@ public class MongoCSFLE {
   //
   // MongoDB connection configuration
   @Getter
+  @Setter
   private MongoClientSettings.Builder mongoClientSettingsBuilder;
   //
   // MongoDB client
   private ClientEncryption clientEncryption;
+  @Setter
   private ClientEncryptionSettings clientEncryptionSettings;
   private AutoEncryptionSettings autoEncryptionSettings;
   //
@@ -74,6 +78,8 @@ public class MongoCSFLE {
   private final Map<String, Object> providerDetails = new HashMap<>();
 
   private HashMap<String, BsonDocument> schemaMap;
+  @Setter
+  private MongoClient mongoClient;
 
   public MongoCSFLE(String mongoUri, Configuration configuration) {
     //
@@ -147,7 +153,7 @@ public class MongoCSFLE {
     return sslContextMap;
   }
 
-  private void setClientConfiguration() throws Exception {
+  private void setupClientConfiguration() throws Exception {
     // Set up the KMS providers
     Map<String, Object> extraOptions = new HashMap<>();
     extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
@@ -190,15 +196,15 @@ public class MongoCSFLE {
     this.clientEncryptionSettings =
         ClientEncryptionSettings.builder()
             .keyVaultMongoClientSettings(
-                MongoClientSettings.builder()
-                    .applyConnectionString(new ConnectionString(this.mongoUri))
-                    .build())
+              this.mongoClientSettingsBuilder
+                .build()
+              )
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
             .kmsProviderSslContextMap(this.createKmipSSLContextMap())
             .build();
 
-    logger.info("ClientEncryptionSettings: " + clientEncryptionSettings.toString());
+    // logger.info("ClientEncryptionSettings: " + clientEncryptionSettings.toString());
     this.clientEncryption = ClientEncryptions.create(clientEncryptionSettings);
   }
 
@@ -215,8 +221,8 @@ public class MongoCSFLE {
       ).unique(true);
     //
     // Create the key vault collection
-    MongoClient _mongoClient = MongoClients.create(this.mongoUri);
-    MongoDatabase database = _mongoClient.getDatabase(this.keyVaultDb);
+    // MongoClient _mongoClient = MongoClients.create(this.mongoUri);
+    MongoDatabase database = this.mongoClient.getDatabase(this.keyVaultDb);
     MongoCollection<Document> collection = database.getCollection(keyVaultColl);
     // Create the key vault index
     collection.createIndex(
@@ -397,7 +403,7 @@ public class MongoCSFLE {
       setupKmsProviders();
       setupClientEncryption();
       loadSchema();
-      setClientConfiguration();
+      setupClientConfiguration();
     } catch (Exception e) {
       logger.error("Error setting up MongoDB CSFLE: " + e.getMessage());
     }

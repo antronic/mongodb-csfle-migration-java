@@ -26,7 +26,7 @@ public class MongoDBService implements AutoCloseable {
   private MongoClient client;
   private final String uri;
   private final MongoDBConnectionConfiguration configuration;
-
+  @Getter
   private MongoClientSettings.Builder mongoClientSettingsBuilder = MongoClientSettings.builder();
 
   // public MongoDBService(MongoClient client) {

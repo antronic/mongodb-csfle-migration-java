@@ -16,7 +16,9 @@ import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.worker.MigrationManager;
 import app.migrator.csfle.worker.WorkerManager;
+import lombok.experimental.Accessors;
 
+@Accessors(chain=true)
 public class MigrationDriver {
   private final Logger logger = LoggerFactory.getLogger(MigrationDriver.class);
   private final Configuration config;

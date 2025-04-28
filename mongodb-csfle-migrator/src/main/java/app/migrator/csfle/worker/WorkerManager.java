@@ -195,7 +195,9 @@ public class WorkerManager {
   public void shutdown() {
     executorService.shutdown();
     try {
-      if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+      if (!executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS)) {
+        logger.warn("Forcing shutdown of executor service...");
+
         executorService.shutdownNow();
       }
     } catch (InterruptedException e) {
