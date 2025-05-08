@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.misc.BoxPrinter;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.service.Report;
@@ -108,8 +109,6 @@ class MigrateCommand implements Runnable {
  */
 @Command(name = "generate-dekid", description = "Generate DEK ID for a given key")
 class GenerateDekIdCommand implements Runnable {
-    private final Logger logger = LoggerFactory.getLogger(GenerateDekIdCommand.class);
-
     @ParentCommand
     private CSFLEMigratorApp parent;
 
@@ -121,22 +120,25 @@ class GenerateDekIdCommand implements Runnable {
         Configuration config = Configuration.load(configPath)
             .loadSchema(schemaPath);
 
+        String dekId = null;
 
-        MongoDBService mongoService = new MongoDBService(config.getTargetMongoDB());
-        mongoService.setup();
-        MongoCSFLE mongoCSFLE = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
-
-        mongoCSFLE
-            .setMongoClientSettingsBuilder(mongoService.getMongoClientSettingsBuilder())
-            .setup()
-            .setMongoClient(mongoService.getClient())
-                .preConfigure();
-        //
-        // Generate DEK ID
-        String dekId = mongoCSFLE.generateDataKey();
-        logger.info("Generated DEK ID: " + dekId);
-        //
-        mongoService.close();
+        try (MongoDBService mongoService = new MongoDBService(config.getTargetMongoDB())) {
+            mongoService.setup();
+            MongoCSFLE mongoCSFLE = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
+            mongoCSFLE
+                    .setMongoClientSettingsBuilder(mongoService.getMongoClientSettingsBuilder())
+                    .setup()
+                    .setMongoClient(mongoService.getClient())
+                    .preConfigure();
+            //
+            // Generate DEK ID
+            //
+            dekId = mongoCSFLE.generateDataKey();
+        } finally {
+            System.out.println();
+            BoxPrinter.print("Generated DEK ID: " + dekId);
+            System.out.println();
+        }
     }
 }
 

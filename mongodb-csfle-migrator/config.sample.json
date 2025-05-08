@@ -29,7 +29,10 @@
     "trustStorePath": "./certs/kmip/rootCA.jks",
     "trustStorePassword": "<password>",
     "keyStoreType": "PKCS12",
-    "trustStoreType": "JKS"
+    "trustStoreType": "JKS",
+
+    "keyVaultDb": "encryption",
+    "keyVaultColl": "__keyVault"
   },
   "worker": {
     "maxBatchSize": 1000,
