@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="logDir">logs</Property>
+    <Property name="appName">mdb-csfle-migrator</Property>
+  </Properties>
+  <Appenders>
+    <!-- Console output -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+    </Console>
+
+    <!-- File output -->
+    <RollingFile name="FileLogger" fileName="${logDir}/${appName}.log" filePattern="${logDir}/${appName}-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n" />
+      <Policies>
+        <!-- Roll on every application start -->
+        <OnStartupTriggeringPolicy/>
+        <!-- Roll if file exceeds 10MB -->
+        <SizeBasedTriggeringPolicy size="10MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <Root level="debug">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileLogger"/>
+    </Root>
+  </Loggers>
+</Configuration>

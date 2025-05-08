@@ -12,6 +12,9 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Factory class for creating SSL contexts used in secure MongoDB connections
  * Particularly important for KMIP (Key Management Interoperability Protocol) communications
@@ -36,17 +39,19 @@ public class SSLContextFactory {
             String keyStoreType,
             String trustStoreType) throws Exception {
 
+        final Logger logger = LoggerFactory.getLogger(SSLContextFactory.class);
+
         if (keyStorePath == null || trustStorePath == null) {
             throw new IllegalArgumentException("KeyStore and TrustStore paths must not be null.");
         }
 
-        System.out.println("[SSLContextFactory] Loading keystore: " + keyStorePath);
+        logger.info("Loading keystore: " + keyStorePath);
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         try (FileInputStream keyStoreInput = new FileInputStream(keyStorePath)) {
             keyStore.load(keyStoreInput, keyStorePassword.toCharArray());
         }
 
-        System.out.println("[SSLContextFactory] Loading truststore: " + trustStorePath);
+        logger.info("Loading truststore: " + trustStorePath);
         KeyStore trustStore = KeyStore.getInstance(trustStoreType);
         try (FileInputStream trustStoreInput = new FileInputStream(trustStorePath)) {
             trustStore.load(trustStoreInput, trustStorePassword.toCharArray());
@@ -56,7 +61,7 @@ public class SSLContextFactory {
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
             Certificate cert = trustStore.getCertificate(alias);
-            System.out.println("Truststore contains: " + alias + " -> " + ((X509Certificate) cert).getSubjectX500Principal());
+            logger.info("Truststore contains: " + alias + " -> " + ((X509Certificate) cert).getSubjectX500Principal());
         }
 
         // Initialize KeyManagerFactory with client keystore for client authentication
@@ -71,7 +76,7 @@ public class SSLContextFactory {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
-        System.out.println("[SSLContextFactory] SSLContext initialized successfully.");
+        logger.info("SSLContext initialized successfully.");
         return sslContext;
     }
 }

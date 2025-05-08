@@ -17,7 +17,7 @@ import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 public class Report {
-  private final Logger logger = LoggerFactory.getLogger(Report.class);
+  private static final Logger logger = LoggerFactory.getLogger(Report.class);
   private final String name;
 
   @Setter
@@ -32,7 +32,7 @@ public class Report {
 
   public void generate() throws IOException {
     // Generate the report
-    System.out.println("Generating report: " + name);
+    logger.info("Generating report: " + name);
     // Add logic to generate the report
     createDirectory();
     //
@@ -70,7 +70,7 @@ public class Report {
   private static String getTimestamp() {
     String format = "yyyy-MM-dd_HH-mm-ss";
     // Add logic to get the current timestamp
-    System.out.println("Getting current timestamp");
+    logger.info("Getting current timestamp");
     return new java.text.SimpleDateFormat(format).format(new java.util.Date());
   }
 
