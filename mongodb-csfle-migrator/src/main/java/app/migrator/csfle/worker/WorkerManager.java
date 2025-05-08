@@ -22,7 +22,6 @@ public class WorkerManager {
   private static final Logger logger = LoggerFactory.getLogger(WorkerManager.class);
 
   private final int maxWorkers;
-  private final int queueSize;
   private final ExecutorService executorService;
   private final BlockingQueue<WorkerTask> taskQueue;
   private final Map<String, WorkerStatus> workerStatus;
@@ -35,7 +34,6 @@ public class WorkerManager {
    */
   public WorkerManager(int maxWorkers, int queueSize) {
     this.maxWorkers = maxWorkers;
-    this.queueSize = queueSize;
     this.executorService = Executors.newFixedThreadPool(maxWorkers);
     this.taskQueue = new ArrayBlockingQueue<>(queueSize);
     this.workerStatus = new ConcurrentHashMap<>();
@@ -84,15 +82,16 @@ public class WorkerManager {
     long retryDelay = 1000; // 1 second delay between retries
 
     logger.info("Submitting task for collection: " + collection);
-
+    //
     // Retry logic for task submission
     // This is a simple retry mechanism. In a real-world scenario, you might want to use
     // while (retryCount < maxRetries) {
-
+    //
     // Retry until the task is successfully added to the queue or interrupted
     while (!Thread.currentThread().isInterrupted()) {
       try {
-        boolean offered = taskQueue.offer(workerTask, Integer.MAX_VALUE, TimeUnit.SECONDS);
+        logger.debug("Attempting to submit task for collection: {}", collection);
+        boolean offered = taskQueue.offer(workerTask, Integer.MAX_VALUE, TimeUnit.HOURS);
         if (offered) {
           logger.debug("Task submitted for collection: {}", collection);
           processQueue();
