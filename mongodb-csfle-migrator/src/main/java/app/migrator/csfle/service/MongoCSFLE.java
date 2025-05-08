@@ -117,14 +117,14 @@ public class MongoCSFLE {
     String keyStoreType = configuration.getEncryption().getKeyStoreType();
     String trustStoreType = configuration.getEncryption().getTrustStoreType();
 
-    logger.info(
-        "KeyStore Path: " + keyStorePath +
-        // "\nKeyStore Password: " + keyStorePassword +
-        "\nTrustStore Path: " + trustStorePath +
-        "\nTrustStore Password: " + trustStorePassword +
-        "\nKeyStore Type: " + keyStoreType +
-        "\nTrustStore Type: " + trustStoreType
-    );
+    // logger.info(
+    //     "KeyStore Path: " + keyStorePath +
+    //     // "\nKeyStore Password: " + keyStorePassword +
+    //     "\nTrustStore Path: " + trustStorePath +
+    //     "\nTrustStore Password: " + trustStorePassword +
+    //     "\nKeyStore Type: " + keyStoreType +
+    //     "\nTrustStore Type: " + trustStoreType
+    // );
 
     SSLContext sslContext = SSLContextFactory.create(
         keyStorePath,

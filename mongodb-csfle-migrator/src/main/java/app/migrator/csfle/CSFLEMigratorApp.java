@@ -2,6 +2,9 @@ package app.migrator.csfle;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
@@ -24,6 +27,7 @@ import picocli.CommandLine.Spec;
     subcommands = {MigrateCommand.class, GenerateDekIdCommand.class, ShowConfigCommand.class, ValidateCommand.class, FeatureTestCommand.class},
     description = "CLI app with required command and optional config files")
 public class CSFLEMigratorApp implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(CSFLEMigratorApp.class);
 
     //----------------------------------------------------------------------
     // Configuration Options
@@ -66,6 +70,7 @@ public class CSFLEMigratorApp implements Runnable {
  */
 @Command(name = "migrate", description = "Migrate data from one MongoDB instance to another")
 class MigrateCommand implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(MigrateCommand.class);
 
     @Option(names = {"-t", "--migrate-config"}, description = "Path to migrate-config.json")
     private String migrationConfig = "migration-config.json";
@@ -84,10 +89,8 @@ class MigrateCommand implements Runnable {
             .loadMigrateTarget(migrationConfig)
             .loadSchema(schemaPath);
 
-        System.out.println("Configuration loaded:");
-        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDB().getUri());
-        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDB().getUri());
-        System.out.println(configuration.getMigrationConfig());
+        logger.info("Configuration loaded:");
+        logger.debug(configuration.toString());
 
         MigrationDriver driver = new MigrationDriver(configuration);
         driver.setup();
@@ -105,6 +108,7 @@ class MigrateCommand implements Runnable {
  */
 @Command(name = "generate-dekid", description = "Generate DEK ID for a given key")
 class GenerateDekIdCommand implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(GenerateDekIdCommand.class);
 
     @ParentCommand
     private CSFLEMigratorApp parent;
@@ -127,12 +131,12 @@ class GenerateDekIdCommand implements Runnable {
             .setup()
             .setMongoClient(mongoService.getClient())
                 .preConfigure();
-        // Initialize target MongoDB client with CSFLE
-        // MongoClientSettings.Builder mongoClientBuilder = mongoCSFLE.getMongoClientSettingsBuilder();
-        // MongoDBService mongoDBService = new MongoDBService(configuration.getTargetMongoDB(), mongoClientBuilder);
-
+        //
+        // Generate DEK ID
         String dekId = mongoCSFLE.generateDataKey();
-        System.out.println("Generated DEK ID: " + dekId);
+        logger.info("Generated DEK ID: " + dekId);
+        //
+        mongoService.close();
     }
 }
 
@@ -146,6 +150,7 @@ class GenerateDekIdCommand implements Runnable {
  */
 @Command(name="show-config", description = "Show the current configuration")
 class ShowConfigCommand implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(ShowConfigCommand.class);
 
     @ParentCommand
     private CSFLEMigratorApp parent;
@@ -158,10 +163,8 @@ class ShowConfigCommand implements Runnable {
         Configuration configuration = Configuration.load(configPath)
             .loadSchema(schemaPath);
 
-        System.out.println("Configuration loaded:");
-        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDB().getUri());
-        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDB().getUri());
-        System.out.println(configuration);
+        logger.info("Configuration loaded:");
+        logger.debug(configuration.toString());
     }
 }
 
@@ -182,6 +185,7 @@ class ShowConfigCommand implements Runnable {
     }
 )
 class ValidateCommand implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(ValidateCommand.class);
 
     @Option(names = {"-t", "--validate-config"}, description = "Path to validate-config.json")
     private String validationConfig = "validation-config.json";
@@ -200,10 +204,8 @@ class ValidateCommand implements Runnable {
             .loadValidationTarget(validationConfig)
             .loadSchema(schemaPath);
 
-        System.out.println("Configuration loaded:");
-        System.out.println("Source MongoDB URI: " + configuration.getSourceMongoDB().getUri());
-        System.out.println("Target MongoDB URI: " + configuration.getTargetMongoDB().getUri());
-        // System.out.println(configuration);
+        logger.info("Configuration loaded:");
+        logger.debug(configuration.toString());
     }
 
     @Override
@@ -221,6 +223,7 @@ class ValidateCommand implements Runnable {
      */
     @Command(name="count", description = "Count the number of documents in the source collection")
     static class ValidateByCountCommand implements Runnable {
+        private final Logger logger = LoggerFactory.getLogger(ValidateByCountCommand.class);
 
         @ParentCommand
         private ValidateCommand parent;
@@ -228,7 +231,7 @@ class ValidateCommand implements Runnable {
         @Override
         public void run() {
             parent.setup();
-            System.out.println("Counting documents in source collection...");
+            logger.info("Counting documents in source collection...");
 
             ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.COUNT);
             driver.setup()
@@ -242,6 +245,7 @@ class ValidateCommand implements Runnable {
      */
     @Command(name="doc-compare", description = "Count the number of documents in the source collection")
     static class ValidateByDocCompareCommand implements Runnable {
+        private final Logger logger = LoggerFactory.getLogger(ValidateByDocCompareCommand.class);
 
         @ParentCommand
         private ValidateCommand parent;
@@ -249,7 +253,7 @@ class ValidateCommand implements Runnable {
         @Override
         public void run() {
             parent.setup();
-            System.out.println("Counting documents in source collection...");
+            logger.info("Counting documents in source collection...");
 
             ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.DOC_COMPARE);
             driver.setup()
@@ -267,6 +271,7 @@ class ValidateCommand implements Runnable {
     description = "Feature test commands"
 )
 class FeatureTestCommand implements Runnable {
+    private final Logger logger = LoggerFactory.getLogger(FeatureTestCommand.class);
 
     @ParentCommand
     private CSFLEMigratorApp parent;
@@ -279,7 +284,7 @@ class FeatureTestCommand implements Runnable {
             report.generate();
 
         } catch (IOException e) {
-            System.err.println("Error generating report: " + e.getMessage());
+            logger.error("Error generating report: " + e.getMessage());
         }
     }
 }
