@@ -30,5 +30,9 @@
     "trustStorePassword": "<password>",
     "keyStoreType": "PKCS12",
     "trustStoreType": "JKS"
+  },
+  "worker": {
+    "maxBatchSize": 1000,
+    "maxThreads": 10
   }
 }
