@@ -3,6 +3,7 @@ package app.migrator.csfle;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,15 @@ public class MigrationDriver {
   private final WorkerManager workerManager;
   private MongoDBService sourceService;
   private MongoDBService targetService;
+  //
+  // Map to hold collections to be validated
   private final Map<String, List<String>> collectionsMap = new HashMap<>();
+  //
+  // Total number of tasks to be executed
+  private int totalTasks;
+  //
+  // Latch to wait for all tasks to complete
+  private CountDownLatch latch;
 
   public MigrationDriver(Configuration config) {
     this.config = config;
@@ -41,6 +50,9 @@ public class MigrationDriver {
   public void startMigration() {
     // Initialize the worker manager with the maximum number of threads and queue size
     workerManager.initializeWorkers();
+    //
+    // Log the planned task count
+    logger.info("Planned task count: {}", this.totalTasks);
     //
     // Iterate over the collections map and submit migration tasks for each collection
     try {
@@ -69,9 +81,16 @@ public class MigrationDriver {
               .setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
               .initialize()
               .run();
-          });
+          }, latch);
         }
       }
+      // Wait for all tasks to complete
+      logger.info("Waiting for all tasks to complete...");
+      latch.await();
+      logger.info("All migration tasks completed.");
+    } catch (InterruptedException e) {
+      logger.error("Error while submitting migration tasks: {}", e.getMessage());
+      e.printStackTrace();
     } finally {
       shutdown();
     }
@@ -125,6 +144,10 @@ public class MigrationDriver {
       throw new RuntimeException("No collections to migrate.");
     }
     logger.info("Collections to migrate: {}", this.collectionsMap);
+    //
+    // Define tasks count and latch
+    this.totalTasks = this.collectionsMap.values().stream().mapToInt(List::size).sum();
+    this.latch = new CountDownLatch(this.totalTasks);
   }
 
   private void shutdown() {

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,12 @@ public class ValidationDriver {
   //
   // Map to hold collections to be validated
   private final Map<String, List<String>> collectionsMap = new HashMap<>();
+  //
+  // Total number of tasks to be executed
+  private int totalTasks;
+  //
+  // Latch to wait for all tasks to complete
+  private CountDownLatch latch;
 
   /**
    * Creates a new ValidationDriver with specified configuration and validation strategy.
@@ -60,13 +67,16 @@ public class ValidationDriver {
    * generates reports, and performs cleanup.
    */
   public void start() {
-    logger.info("\n\ncollectionsMap: {}\n", collectionsMap);
+    logger.info("\n\ncollectionsMap: {}\n", this.collectionsMap);
     // Initialize the worker manager with the maximum number of threads and queue size
     workerManager.initializeWorkers();
     //
+    // Log the planned task count
+    logger.info("Planned task count: {}", this.totalTasks);
+    //
     // Iterate over the collections map and submit validation tasks for each collection
     try {
-      for (Map.Entry<String, List<String>> entry : collectionsMap.entrySet()) {
+      for (Map.Entry<String, List<String>> entry : this.collectionsMap.entrySet()) {
         //
         String dbName = entry.getKey();
         List<String> collections = entry.getValue();
@@ -77,8 +87,14 @@ public class ValidationDriver {
         }
       }
 
-      logger.info("All tasks submitted. Waiting for completion...");
-      workerManager.awaitTermination(); // Wait for all validation tasks to complete
+      // Wait for all tasks to complete
+      logger.info("Waiting for all tasks to complete...");
+      this.latch.await();
+      logger.info("All tasks completed successfully.");
+
+    } catch (InterruptedException e) {
+      logger.error("Error while waiting for tasks to complete: {}", e.getMessage());
+      e.printStackTrace();
     } finally {
       logger.info("All tasks completed");
       {
@@ -97,34 +113,15 @@ public class ValidationDriver {
    *
    * @param dbName The name of the database to validate
    * @param collectionName The name of the collection to validate
+   * @throws InterruptedException
    */
-  private void startValidation(String dbName, String collectionName) {
-    logger.info("\n\ncollectionsMap: {}\n", collectionsMap);
+  private void startValidation(String dbName, String collectionName) throws InterruptedException {
+    logger.info("\n\ncollectionsMap: {}\n", this.collectionsMap);
     //==============================================================================
     // VALIDATION STRATEGIES
     //==============================================================================
-    //
     // Choose the appropriate validation strategy based on configuration
-    switch (this.validationStrategy) {
-      case COUNT:
-        this.startCount(dbName, collectionName);
-        break;
-
-      case DOC_COMPARE:
-        this.startDocCompare(dbName, collectionName);
-        break;
-    }
-  }
-
-  /**
-   * Initiates a count validation task for a specific database collection.
-   * Creates a validation task that compares document counts between source and target collections.
-   *
-   * @param dbName The name of the database containing the collection
-   * @param collectionName The name of the collection to validate
-   */
-  private void startCount(String dbName, String collectionName) {
-    logger.info("Submitting counting task for {}.{}", dbName, collectionName);
+    logger.info("Submitting ", this.validationStrategy.toString(), " task for {}.{}", dbName, collectionName);
     //
     // Submit the validation task to the worker manager
     workerManager.submitTask(collectionName, () -> {
@@ -136,7 +133,7 @@ public class ValidationDriver {
       targetMongoClient.getDatabase(dbName);
       //
       // Create a new instance of the ValidationManager for this task
-      ValidationManager validationManager = new ValidationManager(ValidationStrategy.COUNT, workerManager, this.config);
+      ValidationManager validationManager = new ValidationManager(this.validationStrategy, workerManager, this.config);
       // Run the validation process
       validationManager.setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
         .initialize()
@@ -144,32 +141,7 @@ public class ValidationDriver {
         .run();
 
       logger.info("Counting task completed for {}.{}", dbName, collectionName);
-    });
-  }
-
-  private void startDocCompare(String dbName, String collectionName) {
-    logger.info("Submitting document comparison task for {}.{}", dbName, collectionName);
-    //
-    // Submit the validation task to the worker manager
-    workerManager.submitTask(collectionName, () -> {
-      //
-      // Initialize MongoDB clients for the validation task
-      MongoClient sourceMongoClient = sourceService.getClient();
-      MongoClient targetMongoClient = targetService.getClient();
-      sourceMongoClient.getDatabase(dbName);
-      targetMongoClient.getDatabase(dbName);
-      //
-      // Create a new instance of the ValidationManager for this task
-      ValidationManager validationManager = new ValidationManager(ValidationStrategy.DOC_COMPARE, workerManager, this.config);
-      // Run the validation process
-      validationManager.setup(sourceMongoClient, targetMongoClient, dbName, collectionName)
-        .initialize()
-        .setReport(report)
-        .run();
-
-      logger.info("Document comparison task completed for {}.{}", dbName, collectionName);
-    });
-
+    }, this.latch);
   }
 
   /**
@@ -220,6 +192,10 @@ public class ValidationDriver {
           this.collectionsMap.put(dbName, collections);
         }
       }
+      //
+      // Define tasks count and latch
+      this.totalTasks = this.collectionsMap.values().stream().mapToInt(List::size).sum();
+      this.latch = new CountDownLatch(this.totalTasks);
     } else {
       logger.error("Validation configuration is null. Please check your configuration.");
       throw new RuntimeException("Validation configuration is null.");

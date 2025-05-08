@@ -40,7 +40,7 @@ public class Configuration {
     private int maxThreads = 10;
     private int maxQueueSize = 1000;
     private int maxBatchSize = 100;
-    private int maxBatchWaitTime = 1000; // in millisecondsprivate int maxBatchSize = 100;
+    private int maxBatchWaitTime = Integer.MAX_VALUE; // in millisecondsprivate int maxBatchSize = 100;
     private int retryDelay = 1000; // in milliseconds
     private boolean enableLogging = true;
   }

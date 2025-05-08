@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -68,10 +69,18 @@ public class WorkerManager {
    * @param task runnable containing the migration logic
    * @throws InterruptedException if the task submission is interrupted
    */
-  public void submitTask(String collection, Runnable task) {
-    WorkerTask workerTask = new WorkerTask(collection, task);
+  public void submitTask(String collection, Runnable task, CountDownLatch latch) throws InterruptedException {
+    Runnable wrappedTask = () -> {
+      try {
+        task.run();
+      } finally {
+        latch.countDown();
+      }
+    };
+
+    WorkerTask workerTask = new WorkerTask(collection, wrappedTask);
     int retryCount = 0;
-    int maxRetries = 3; // Configurable
+    int maxRetries = Integer.MAX_VALUE; // Configurable
     long retryDelay = 1000; // 1 second delay between retries
 
     logger.info("Submitting task for collection: " + collection);
@@ -83,7 +92,7 @@ public class WorkerManager {
     // Retry until the task is successfully added to the queue or interrupted
     while (!Thread.currentThread().isInterrupted()) {
       try {
-        boolean offered = taskQueue.offer(workerTask, 1, TimeUnit.SECONDS);
+        boolean offered = taskQueue.offer(workerTask, Integer.MAX_VALUE, TimeUnit.SECONDS);
         if (offered) {
           logger.debug("Task submitted for collection: {}", collection);
           processQueue();
@@ -156,7 +165,7 @@ public class WorkerManager {
     status.setCurrentCollection(task.getCollection());
     status.setStartTime(System.currentTimeMillis());
 
-    executorService.submit(() -> {
+    this.executorService.submit(() -> {
       try {
         task.getTask().run();
       } finally {
@@ -193,15 +202,15 @@ public class WorkerManager {
    * shutdown after timeout.
    */
   public void shutdown() {
-    executorService.shutdown();
+    this.executorService.shutdown();
     try {
-      if (!executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS)) {
+      if (!this.executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS)) {
         logger.warn("Forcing shutdown of executor service...");
 
-        executorService.shutdownNow();
+        this.executorService.shutdownNow();
       }
     } catch (InterruptedException e) {
-      executorService.shutdownNow();
+      this.executorService.shutdownNow();
       Thread.currentThread().interrupt();
     }
   }
@@ -209,7 +218,7 @@ public class WorkerManager {
   public void awaitTermination() {
     try {
       this.shutdown();
-      executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      this.executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
