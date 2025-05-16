@@ -91,6 +91,16 @@ public class MongoWriter {
         }
     }
 
+    public void createCollection() {
+        try {
+            mongoClient.getDatabase(targetDatabase).createCollection(targetCollection);
+            logger.info("Created collection {}.{}", targetDatabase, targetCollection);
+        } catch (MongoException e) {
+            logger.error("Failed to create collection {}.{}: {}", targetDatabase, targetCollection, e.getMessage());
+            throw e;
+        }
+    }
+
     private void handleBulkWriteError(List<Document> documents, MongoBulkWriteException e) {
         List<BulkWriteError> errors = e.getWriteErrors();
 

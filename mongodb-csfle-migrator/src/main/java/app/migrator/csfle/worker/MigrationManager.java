@@ -83,12 +83,6 @@ public class MigrationManager {
     if (batchSize <= 0) {
       throw new IllegalArgumentException("Batch size must be greater than zero.");
     }
-    if (totalCount <= 0) {
-      // Skip the validation if there are no documents to process
-      logger.info("No documents to process in the source collection. {}", sourceCollection);
-      logger.info("Skipping validation for {}.{}", sourceDatabase, sourceCollection);
-      return;
-    }
     //
     currentBatchIndex = 0;
     currentBatchCount = getTotalRounds();
@@ -98,6 +92,18 @@ public class MigrationManager {
     // and writing it to the target database.
     sourceReader.setup(this.sourceMongoClient, sourceDatabase, sourceCollection);
     targetWriter.setup(this.targetMongoClient, sourceDatabase, sourceCollection);
+    //
+    // If total count is zero, just create the collection in the target database
+    if (totalCount <= 0) {
+      // Skip the validation if there are no documents to process
+      logger.info("No documents to process in the source collection. {}", sourceCollection);
+      if (configuration.getMigrationConfig().getMigrationOptions().isCreateCollectionEvenEmpty()) {
+        logger.info("Creating Collection for {}.{}", sourceDatabase, sourceCollection);
+        // Create the collection in the target database
+        targetWriter.createCollection();
+      }
+      return;
+    }
 
     // Start the migration process
     for (int i = 0; i < batchCount; i++) {

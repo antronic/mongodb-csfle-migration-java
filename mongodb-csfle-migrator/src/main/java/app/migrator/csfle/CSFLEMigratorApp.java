@@ -154,6 +154,9 @@ class GenerateDekIdCommand implements Runnable {
 class ShowConfigCommand implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(ShowConfigCommand.class);
 
+    @Option(names = {"-t", "--migrate-config"}, description = "Path to migrate-config.json")
+    private String migrationConfig = "migration-config.json";
+
     @ParentCommand
     private CSFLEMigratorApp parent;
 
@@ -163,6 +166,7 @@ class ShowConfigCommand implements Runnable {
         String configPath = parent.getConfigPath();
         String schemaPath = parent.getSchemaPath();
         Configuration configuration = Configuration.load(configPath)
+            .loadMigrateTarget(migrationConfig)
             .loadSchema(schemaPath);
 
         logger.info("Configuration loaded:");
