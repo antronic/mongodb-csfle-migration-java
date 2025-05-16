@@ -112,7 +112,7 @@ class GenerateDekIdCommand implements Runnable {
     @ParentCommand
     private CSFLEMigratorApp parent;
 
-    @Option(names = {"-n", "--name"}, description = "Specify the altKeyName for key")
+    @Option(names = {"-n", "--name"}, description = "Specify the altKeyName for the key")
     private String keyAltName = "default";
 
     @Override
