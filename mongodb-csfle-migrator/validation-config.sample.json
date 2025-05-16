@@ -1,4 +1,7 @@
 {
+  "validationOptions": {
+    "validateEmptyCollections": true
+  },
   "targetToValidate": {
     "database-1": [
       "collection-1", "collection-2"
