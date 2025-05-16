@@ -101,6 +101,10 @@ public class MigrationManager {
         logger.info("Creating Collection for {}.{}", sourceDatabase, sourceCollection);
         // Create the collection in the target database
         targetWriter.createCollection();
+      } else {
+        logger.info("Skipping migration for {}.{} as there are no documents to process.", sourceDatabase, sourceCollection);
+        // If the collection is empty and we are not creating it, just return
+        return;
       }
       return;
     }
