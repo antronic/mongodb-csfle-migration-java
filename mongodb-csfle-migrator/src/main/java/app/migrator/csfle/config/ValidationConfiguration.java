@@ -8,9 +8,15 @@ import lombok.Data;
 @Data
 public class ValidationConfiguration {
   private Map<String, List<String>> targetToValidate;
-  private boolean dropCollectionOnTarget = false;
+  private ValidationOptions validationOptions = new ValidationOptions();
 
-  private String migrationName = "Migration_" + System.currentTimeMillis();
-  private int migrationVersion;
-  private String migrationDescription;
+  @Data
+  public static class ValidationOptions {
+    private boolean validateEmptyCollections = true; // Optional, can be set to false if empty collections are acceptable
+    // private boolean validateSchema = true;
+    // private boolean validateDataIntegrity = true;
+    // private boolean validateEncryption = true;
+    // private boolean validateIndexes = true;
+    // private boolean validatePerformance = false; // Optional, can be set to true if needed
+  }
 }

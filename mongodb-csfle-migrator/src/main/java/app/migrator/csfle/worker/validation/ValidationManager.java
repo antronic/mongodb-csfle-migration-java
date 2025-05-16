@@ -159,12 +159,6 @@ public class ValidationManager {
     if (batchSize <= 0) {
       throw new IllegalArgumentException("Batch size must be greater than zero.");
     }
-    if (totalCount <= 0) {
-      // Skip the validation if there are no documents to process
-      logger.info("No documents to process in the source collection. {}", sourceCollection);
-      logger.info("Skipping validation for {}.{}", sourceDatabase, sourceCollection);
-      return;
-    }
     if (this.report == null) {
       throw new IllegalStateException("Report is not set.");
     }
@@ -174,6 +168,14 @@ public class ValidationManager {
     targetReader.setup(this.targetMongoClient, sourceDatabase, sourceCollection);
     //
     // Process the batch
+    if (totalCount <= 0) {
+      // Skip the validation if there are no documents to process
+      logger.info("No documents to process in the source collection. {}", sourceCollection);
+      if (!configuration.getValidationConfig().getValidationOptions().isValidateEmptyCollections()) {
+        logger.info("Skipping validation for {}.{}", sourceDatabase, sourceCollection);
+        return;
+      }
+    }
     processBatch();
   }
 
