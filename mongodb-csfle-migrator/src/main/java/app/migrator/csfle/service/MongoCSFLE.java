@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -239,13 +240,19 @@ public class MongoCSFLE {
     );
   }
 
+  public String generateDataKey() {
+    return generateDataKey("default");
+  }
+
   //
   // Function to generate a new data encryption key (DEK) for the KMIP provider
-  public String generateDataKey() {
+  public String generateDataKey(String keyAltName) {
     BsonBinary dataKeyId = this.clientEncryption
       .createDataKey(
         kmsProvider,
-        new DataKeyOptions().masterKey(new BsonDocument())
+        new DataKeyOptions()
+          .masterKey(new BsonDocument())
+          .keyAltNames(Arrays.asList(keyAltName))
       );
     String base64DataKeyId = Base64
       .getEncoder()

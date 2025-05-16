@@ -112,6 +112,9 @@ class GenerateDekIdCommand implements Runnable {
     @ParentCommand
     private CSFLEMigratorApp parent;
 
+    @Option(names = {"-n", "--name"}, description = "Specify the altKeyName for key")
+    private String keyAltName = "default";
+
     @Override
     public void run() {
         // Configuration files
@@ -133,7 +136,7 @@ class GenerateDekIdCommand implements Runnable {
             //
             // Generate DEK ID
             //
-            dekId = mongoCSFLE.generateDataKey();
+            dekId = mongoCSFLE.generateDataKey(keyAltName);
         } finally {
             System.out.println();
             BoxPrinter.print("Generated DEK ID: " + dekId);
