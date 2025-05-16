@@ -1,7 +1,7 @@
 config.json
 schema.json
 migration-config.json
-validation-config.json # Ignore all files in the data directory
+validation-config.json
 master-key.txt
 
 # Ignore target directory
