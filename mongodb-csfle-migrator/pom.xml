@@ -5,7 +5,7 @@
 
   <groupId>app</groupId>
   <artifactId>mongodb-csfle-migrator</artifactId>
-  <version>1.2.4-SNAPSHOT</version>
+  <version>1.2.5-SNAPSHOT</version>
 
   <name>mongodb-csfle-migrator</name>
   <!-- FIXME change it to the project's website -->

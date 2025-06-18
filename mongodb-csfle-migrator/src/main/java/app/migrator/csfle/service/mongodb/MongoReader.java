@@ -67,6 +67,7 @@ public class MongoReader {
       .getCollection(collection)
       .find(filter)
         .skip(skip)
+        .sort(new Document("_id", 1))
         .limit(limit);
 
     return docs;
