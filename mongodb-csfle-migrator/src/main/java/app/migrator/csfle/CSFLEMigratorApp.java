@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import app.migrator.csfle.config.Configuration;
+import app.migrator.csfle.config.Log4jConfig;
 import app.migrator.csfle.misc.BoxPrinter;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
@@ -55,6 +56,7 @@ public class CSFLEMigratorApp implements Runnable {
     }
 
     public static void main(String[] args) {
+        Log4jConfig.main(args);
         int exitCode = new CommandLine(new CSFLEMigratorApp()).execute(args);
         System.exit(exitCode);
     }

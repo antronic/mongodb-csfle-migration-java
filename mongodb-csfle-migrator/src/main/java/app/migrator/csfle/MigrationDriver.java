@@ -75,6 +75,7 @@ public class MigrationDriver {
             MongoClient targetMongoClient = targetService.getClient();
             sourceMongoClient.getDatabase(dbName);
             targetMongoClient.getDatabase(dbName);
+
             //
             // Run the migration process
             migrationManager

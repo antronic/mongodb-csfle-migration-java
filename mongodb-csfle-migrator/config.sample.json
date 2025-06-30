@@ -36,6 +36,7 @@
   },
   "worker": {
     "maxBatchSize": 1000,
-    "maxThreads": 10
+    "maxThreads": 10,
+    "readOperationType": "cursor"
   }
 }

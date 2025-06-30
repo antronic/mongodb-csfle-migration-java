@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSecurityException;
+import com.mongodb.WriteConcern;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -57,7 +58,8 @@ public class MongoWriter {
         try {
             MongoCollection<Document> collection = mongoClient
                 .getDatabase(targetDatabase)
-                .getCollection(targetCollection);
+                .getCollection(targetCollection)
+                .withWriteConcern(WriteConcern.W1);
 
             InsertManyOptions options = new InsertManyOptions()
                 .ordered(false); // Allow unordered inserts
@@ -93,8 +95,13 @@ public class MongoWriter {
 
     public void createCollection() {
         try {
-            mongoClient.getDatabase(targetDatabase).createCollection(targetCollection);
-            logger.info("Created collection {}.{}", targetDatabase, targetCollection);
+            MongoCollection<Document> collection = mongoClient.getDatabase(targetDatabase).getCollection(targetCollection);
+            if (collection == null) {
+                mongoClient.getDatabase(targetDatabase).createCollection(targetCollection);
+                logger.info("Created collection {}.{}", targetDatabase, targetCollection);
+            } else {
+                logger.info("Collection {}.{} already exists", targetDatabase, targetCollection);
+            }
         } catch (MongoException e) {
             logger.error("Failed to create collection {}.{}: {}", targetDatabase, targetCollection, e.getMessage());
             throw e;

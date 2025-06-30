@@ -2,6 +2,7 @@ package app.migrator.csfle.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -43,6 +44,32 @@ public class Configuration {
     private int maxBatchWaitTime = Integer.MAX_VALUE; // in millisecondsprivate int maxBatchSize = 100;
     private int retryDelay = 1000; // in milliseconds
     private boolean enableLogging = true;
+    //
+    // Read configuration
+    // Type of read operation (cursor or skip)
+    private String readOperationType = "cursor";
+
+    public static void validate(WorkerConfig config) {
+      // Read operation type, can be "cursor" or "skip"
+      if (!Arrays.asList("cursor", "skip").contains(config.getReadOperationType())) {
+        throw new IllegalArgumentException("Invalid readOperationType: " + config.getReadOperationType());
+      }
+      // if (config.getMaxThreads() <= 0) {
+      //   throw new IllegalArgumentException("Invalid maxThreads: " + config.getMaxThreads());
+      // }
+      // if (config.getMaxQueueSize() <= 0) {
+      //   throw new IllegalArgumentException("Invalid maxQueueSize: " + config.getMaxQueueSize());
+      // }
+      // if (config.getMaxBatchSize() <= 0) {
+      //   throw new IllegalArgumentException("Invalid maxBatchSize: " + config.getMaxBatchSize());
+      // }
+      // if (config.getMaxBatchWaitTime() < 0) {
+      //   throw new IllegalArgumentException("Invalid maxBatchWaitTime: " + config.getMaxBatchWaitTime());
+      // }
+      // if (config.getRetryDelay() < 0) {
+      //   throw new IllegalArgumentException("Invalid retryDelay: " + config.getRetryDelay());
+      // }
+    }
   }
 
   public static Configuration load(String configPath) {
@@ -98,6 +125,7 @@ public class Configuration {
       defaultWorker.setMaxBatchWaitTime(userWorker.getMaxBatchWaitTime());
       defaultWorker.setRetryDelay(userWorker.getRetryDelay());
       defaultWorker.setEnableLogging(userWorker.isEnableLogging());
+      defaultWorker.setReadOperationType(userWorker.getReadOperationType());
     }
   }
 
@@ -109,6 +137,11 @@ public class Configuration {
 
     // Validate encryption config
     EncryptionConfiguration.validate(config.getEncryption());
+
+    // Validate worker config
+    WorkerConfig.validate(config.getWorker());
+
+    // Validate other configurations
   }
 
   public Configuration loadSchema() {

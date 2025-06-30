@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.CountOptions;
 
 import lombok.Getter;
@@ -28,6 +29,9 @@ public class MongoReader {
   @Setter
   @Getter
   private int limit;
+  @Setter
+  @Getter
+  private int batchSize;
 
   public void setup(MongoClient mongoClient, String sourceDatabase, String sourceCollection) {
     this.mongoClient = mongoClient;
@@ -62,7 +66,9 @@ public class MongoReader {
 
     // logger.info("Skipping {} documents and limiting to {} documents", skip, limit);
 
-    FindIterable<Document> docs = mongoClient
+    // Keep retrying until successful
+    try {
+      FindIterable<Document> docs = mongoClient
       .getDatabase(database)
       .getCollection(collection)
       .find(filter)
@@ -71,6 +77,28 @@ public class MongoReader {
         .limit(limit);
 
     return docs;
+    } catch (Exception e) {
+      logger.error("Error reading documents from {}.{}: {}", database, collection, e.getMessage());
+      throw e;
+    }
+  }
+
+  // Use Cursor to iterate over documents instead of skip and limit
+  public MongoCursor<Document> readWithCursor() {
+    try {
+      MongoCursor<Document> cursor = mongoClient
+          .getDatabase(database)
+          .getCollection(collection)
+          .find()
+          .skip(skip)
+          .sort(new Document("_id", 1))
+          .cursor();
+
+      return cursor;
+    } catch (Exception e) {
+      logger.error("Error reading documents from {}.{}: {}", database, collection, e.getMessage());
+      throw e;
+    }
   }
 
   public long count(Bson filter) {

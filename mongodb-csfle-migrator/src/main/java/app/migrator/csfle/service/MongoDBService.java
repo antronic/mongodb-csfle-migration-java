@@ -2,6 +2,7 @@ package app.migrator.csfle.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -112,6 +113,9 @@ public class MongoDBService implements AutoCloseable {
             ssl.enabled(false);
           }
         })
+        .applyToClusterSettings(settings -> settings
+            .applyConnectionString(new ConnectionString(uri)))
+            .timeout(30, TimeUnit.MINUTES)
         .applyToConnectionPoolSettings(settings -> settings
             .maxSize(10)
             .minSize(1));
