@@ -176,7 +176,7 @@ public class MigrationManager {
       batchDocs.add(doc);
       //
       // Process the document
-      if (batchDocs.size() >= this.batchSize) {
+      if (batchDocs.size() >= this.batchSize || !cursor.hasNext()) {
         // logger.info(sourceDatabase);
         // Write the batch to the target
         targetWriter.writeBatch(batchDocs);
