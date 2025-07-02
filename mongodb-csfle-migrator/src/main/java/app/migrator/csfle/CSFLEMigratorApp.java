@@ -34,6 +34,8 @@ public class CSFLEMigratorApp implements Runnable {
     //----------------------------------------------------------------------
     // Configuration Options
     //----------------------------------------------------------------------
+    @Getter
+    private Configuration configuration;
 
     @Getter
     @Option(names = {"-c", "--config"}, description = "Path to config.json")
@@ -55,15 +57,29 @@ public class CSFLEMigratorApp implements Runnable {
             .usage(System.err);
     }
 
+    public void setup() {
+        System.out.println();
+        System.out.println("[+] Setting up application");
+        System.out.println();
+        this.configuration = Configuration.load(configPath)
+            .loadSchema(schemaPath);
+        //
+        // Configure logging
+        Log4jConfig.configureLogging(configuration);
+    }
+
     public static void main(String[] args) {
-        Log4jConfig.main(args);
+        // Configuration configuration = Configuration.load("config.json");
+        // Log4jConfig.configureLogging(configuration);
+        // Log4jConfig.main(args);
         //
         System.out.println();
         BoxPrinter.print("MongoDB CSFLE Migrator");
         System.out.println();
-        //
-        int exitCode = new CommandLine(new CSFLEMigratorApp()).execute(args);
+        int exitCode = new CommandLine(new CSFLEMigratorApp())
+            .execute(args);
         System.exit(exitCode);
+        //
     }
 }
 
@@ -89,16 +105,13 @@ class MigrateCommand implements Runnable {
     @Override
     public void run() {
         // Configuration files
-        String configPath = parent.getConfigPath();
-        String schemaPath = parent.getSchemaPath();
-
-        Configuration configuration = Configuration.load(configPath);
+        parent.setup();
+        Configuration configuration = parent.getConfiguration();
         configuration
-            .loadMigrateTarget(migrationConfig)
-            .loadSchema(schemaPath);
+            .loadMigrateTarget(migrationConfig);
 
-        logger.info("Configuration loaded:");
-        logger.debug(configuration.toString());
+        // logger.info("Configuration loaded:");
+        // logger.debug(configuration.toString());
 
         MigrationDriver driver = new MigrationDriver(configuration);
         driver.setup();
@@ -125,10 +138,8 @@ class GenerateDekIdCommand implements Runnable {
     @Override
     public void run() {
         // Configuration files
-        String configPath = parent.getConfigPath();
-        String schemaPath = parent.getSchemaPath();
-        Configuration config = Configuration.load(configPath)
-            .loadSchema(schemaPath);
+        parent.setup();
+        Configuration config = parent.getConfiguration();
 
         String dekId = null;
 
@@ -173,11 +184,9 @@ class ShowConfigCommand implements Runnable {
     @Override
     public void run() {
         // Configuration files
-        String configPath = parent.getConfigPath();
-        String schemaPath = parent.getSchemaPath();
-        Configuration configuration = Configuration.load(configPath)
-            .loadMigrateTarget(migrationConfig)
-            .loadSchema(schemaPath);
+        parent.setup();
+        Configuration configuration = parent.getConfiguration()
+            .loadMigrateTarget(migrationConfig);
 
         logger.info("Configuration loaded:");
         logger.debug(configuration.toString());
@@ -212,16 +221,10 @@ class ValidateCommand implements Runnable {
     Configuration configuration;
 
     public void setup() {
-        // Configuration files
-        String configPath = parent.getConfigPath();
-        String schemaPath = parent.getSchemaPath();
         // Load configuration
-        this.configuration = Configuration.load(configPath)
-            .loadValidationTarget(validationConfig)
-            .loadSchema(schemaPath);
-
-        logger.info("Configuration loaded:");
-        logger.debug(configuration.toString());
+        parent.setup();
+        this.configuration = parent.getConfiguration()
+            .loadValidationTarget(validationConfig);
     }
 
     @Override
