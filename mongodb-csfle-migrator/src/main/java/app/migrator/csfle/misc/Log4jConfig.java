@@ -71,7 +71,7 @@ public class Log4jConfig {
             .add(builder.newAppenderRef("Console"))
             .add(builder.newAppenderRef("FileLogger")));
 
-        if (config.getApp().getLogOptions().getLogLevel().equals("DEBUG")) {
+        if (config.getApp().getLogOptions().getLevel().equals("DEBUG")) {
             builder.add(
                 builder.newLogger("app.migrator.csfle", Level.DEBUG)
                     // prevent log propagation to parent loggers
