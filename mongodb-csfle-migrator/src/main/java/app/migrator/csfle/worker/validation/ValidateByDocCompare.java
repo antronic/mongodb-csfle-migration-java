@@ -184,7 +184,7 @@ public class ValidateByDocCompare {
         logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
       } else {
         // Document exists in both and contents match
-        logger.info("Document matched: _id={}", id);
+        logger.debug("Document matched: _id={}", id);
       }
     }
   }
