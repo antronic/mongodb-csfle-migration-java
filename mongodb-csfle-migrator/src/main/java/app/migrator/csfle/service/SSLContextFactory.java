@@ -45,13 +45,13 @@ public class SSLContextFactory {
             throw new IllegalArgumentException("KeyStore and TrustStore paths must not be null.");
         }
 
-        logger.info("Loading keystore: " + keyStorePath);
+        logger.debug("Loading keystore: " + keyStorePath);
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         try (FileInputStream keyStoreInput = new FileInputStream(keyStorePath)) {
             keyStore.load(keyStoreInput, keyStorePassword.toCharArray());
         }
 
-        logger.info("Loading truststore: " + trustStorePath);
+        logger.debug("Loading truststore: " + trustStorePath);
         KeyStore trustStore = KeyStore.getInstance(trustStoreType);
         try (FileInputStream trustStoreInput = new FileInputStream(trustStorePath)) {
             trustStore.load(trustStoreInput, trustStorePassword.toCharArray());
@@ -61,7 +61,7 @@ public class SSLContextFactory {
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
             Certificate cert = trustStore.getCertificate(alias);
-            logger.info("Truststore contains: " + alias + " -> " + ((X509Certificate) cert).getSubjectX500Principal());
+            logger.debug("Truststore contains: " + alias + " -> " + ((X509Certificate) cert).getSubjectX500Principal());
         }
 
         // Initialize KeyManagerFactory with client keystore for client authentication

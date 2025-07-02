@@ -35,9 +35,11 @@ public class Log4jConfig {
             java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
         );
         String logFile = logDir + "/" + appName + "-" + dateTime + ".log";
+        String errorLogFile = logDir + "/" + appName + "-" + dateTime + "-error.log";
 
         // Update the rolling pattern with the new date format
         String filePattern = logDir + "/" + appName + "-%d{yyyy-MM-dd_HH-mm-ss}-%i.log.gz";
+        String errorFilePattern = logDir + "/" + appName + "-%d{yyyy-MM-dd_HH-mm-ss}-%i-error.log.gz";
 
         // 2. Define the pattern layout with the new date format
         LayoutComponentBuilder layout = builder.newLayout("PatternLayout")
@@ -48,7 +50,7 @@ public class Log4jConfig {
             .add(layout);
         builder.add(console);
 
-        // 4. Define the rolling file appender with complete policies
+        // 4. Define the rolling file appender with complete policies for main log
         AppenderComponentBuilder rollingFile = builder.newAppender("FileLogger", "RollingFile")
             .addAttribute("fileName", logFile)
             .addAttribute("filePattern", filePattern)
@@ -56,30 +58,50 @@ public class Log4jConfig {
             .addComponent(builder.newComponent("Policies")
                 .addComponent(builder.newComponent("SizeBasedTriggeringPolicy")
                     .addAttribute("size", "100MB"))
-                .addComponent(builder.newComponent("TimeBasedTriggeringPolicy")
-                    .addAttribute("interval", "1")
-                    .addAttribute("modulate", "true"))
                 .addComponent(builder.newComponent("OnStartupTriggeringPolicy")))
             .addComponent(builder.newComponent("DefaultRolloverStrategy")
-                .addAttribute("max", "20")
+                .addAttribute("max", "30")
                 .addAttribute("fileIndex", "min"));
         builder.add(rollingFile);
 
-        // 5. Add loggers
+        // 5. Define error log file with a built-in threshold filter and immediateFlush=true
+        AppenderComponentBuilder errorFile = builder.newAppender("ErrorFileLogger", "RollingFile")
+            .addAttribute("fileName", errorLogFile)
+            .addAttribute("filePattern", errorFilePattern)
+            .addAttribute("immediateFlush", "true")
+            .addAttribute("createOnDemand", "true") // This creates the file only when needed
+            .add(layout)
+            // Add filter directly to the appender
+            .addComponent(builder.newComponent("ThresholdFilter")
+                .addAttribute("level", "ERROR")
+                .addAttribute("onMatch", "ACCEPT")
+                .addAttribute("onMismatch", "DENY"))
+            .addComponent(builder.newComponent("Policies")
+                .addComponent(builder.newComponent("SizeBasedTriggeringPolicy")
+                    .addAttribute("size", "50MB"))
+                .addComponent(builder.newComponent("OnStartupTriggeringPolicy")))
+            .addComponent(builder.newComponent("DefaultRolloverStrategy")
+                .addAttribute("max", "30")
+                .addAttribute("fileIndex", "min"));
+        builder.add(errorFile);
+
+        // 6. Add loggers
         builder.add(builder.newLogger("org.mongodb.driver", Level.OFF));
 
         builder.add(builder.newRootLogger(Level.INFO)
             .add(builder.newAppenderRef("Console"))
-            .add(builder.newAppenderRef("FileLogger")));
+            .add(builder.newAppenderRef("FileLogger"))
+            .add(builder.newAppenderRef("ErrorFileLogger")));
 
         builder.add(
             builder.newLogger("app.migrator.csfle", Level.DEBUG)
             // prevent log propagation to parent loggers
             .addAttribute("additivity", false)
             .add(builder.newAppenderRef("Console"))
-            .add(builder.newAppenderRef("FileLogger")));
+            .add(builder.newAppenderRef("FileLogger"))
+            .add(builder.newAppenderRef("ErrorFileLogger")));
 
-        // 6. Initialize configuration
+        // 7. Initialize configuration
         Configurator.initialize(builder.build());
     }
 }

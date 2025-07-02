@@ -201,9 +201,9 @@ public class MigrationManager {
     if (this.configuration.getWorker().getReadOperationType().equals("skip")) {
       this.totalCount = getTotalCountInCollection();
       this.batchCount = getTotalRounds();
+      logger.info("Total docs count: " + totalCount);
     }
 
-    logger.info("Total docs count: " + totalCount);
 
     // this.currentBatchSize = Math.min(batchSize, (int) (totalCount - (currentBatchIndex * batchSize)));
     // this.currentBatchCount = Math.min(batchCount, this.getTotalRounds());

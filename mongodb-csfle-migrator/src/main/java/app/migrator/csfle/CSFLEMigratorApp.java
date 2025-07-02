@@ -57,6 +57,11 @@ public class CSFLEMigratorApp implements Runnable {
 
     public static void main(String[] args) {
         Log4jConfig.main(args);
+        //
+        System.out.println();
+        BoxPrinter.print("MongoDB CSFLE Migrator");
+        System.out.println();
+        //
         int exitCode = new CommandLine(new CSFLEMigratorApp()).execute(args);
         System.exit(exitCode);
     }
