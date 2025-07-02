@@ -16,7 +16,7 @@ public class Log4jConfig {
         configureLogging(config);
     }
 
-    private static void configureLogging(Configuration config) {
+    public static void configureLogging(Configuration config) {
         ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
 
         builder.setStatusLevel(Level.WARN);

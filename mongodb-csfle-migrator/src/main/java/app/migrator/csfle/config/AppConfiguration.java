@@ -7,6 +7,6 @@ public class AppConfiguration {
   private LogOptions logOptions = new LogOptions();
   @Data
   public static class LogOptions {
-    private String logLevel = "INFO";
+    private String level = "INFO";
   }
 }

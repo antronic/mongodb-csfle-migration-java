@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import app.migrator.csfle.config.Configuration;
-import app.migrator.csfle.config.Log4jConfig;
 import app.migrator.csfle.misc.BoxPrinter;
+import app.migrator.csfle.misc.Log4jConfig;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.service.Report;
@@ -65,7 +65,7 @@ public class CSFLEMigratorApp implements Runnable {
             .loadSchema(schemaPath);
         //
         // Configure logging
-        Log4jConfig.configureLogging(configuration);
+        Log4jConfig.configureLogging(this.configuration);
     }
 
     public static void main(String[] args) {

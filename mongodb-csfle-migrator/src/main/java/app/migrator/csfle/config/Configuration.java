@@ -2,7 +2,6 @@ package app.migrator.csfle.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -22,9 +21,12 @@ public class Configuration {
   private MongoDBConnectionConfiguration sourceMongoDB = new MongoDBConnectionConfiguration();
   private MongoDBConnectionConfiguration targetMongoDB = new MongoDBConnectionConfiguration();
   //
+  // App configuration
+  private AppConfiguration app = new AppConfiguration();
   // Encryption configuration
-  private WorkerConfig worker = new WorkerConfig();
   private EncryptionConfiguration encryption = new EncryptionConfiguration();
+  // Worker configuration
+  private WorkerConfiguration worker = new WorkerConfiguration();
 
   private SchemaConfiguration schema;
   private String schemaFilePath = "schema.json";
@@ -35,42 +37,6 @@ public class Configuration {
 
   private ValidationConfiguration validationConfig;
   private String validationConfigFilePath = "validation-config.json";
-
-  @Data
-  public static class WorkerConfig {
-    private int maxThreads = 10;
-    private int maxQueueSize = 1000;
-    private int maxBatchSize = 100;
-    private int maxBatchWaitTime = Integer.MAX_VALUE; // in millisecondsprivate int maxBatchSize = 100;
-    private int retryDelay = 1000; // in milliseconds
-    private boolean enableLogging = true;
-    //
-    // Read configuration
-    // Type of read operation (cursor or skip)
-    private String readOperationType = "cursor";
-
-    public static void validate(WorkerConfig config) {
-      // Read operation type, can be "cursor" or "skip"
-      if (!Arrays.asList("cursor", "skip").contains(config.getReadOperationType())) {
-        throw new IllegalArgumentException("Invalid readOperationType: " + config.getReadOperationType());
-      }
-      // if (config.getMaxThreads() <= 0) {
-      //   throw new IllegalArgumentException("Invalid maxThreads: " + config.getMaxThreads());
-      // }
-      // if (config.getMaxQueueSize() <= 0) {
-      //   throw new IllegalArgumentException("Invalid maxQueueSize: " + config.getMaxQueueSize());
-      // }
-      // if (config.getMaxBatchSize() <= 0) {
-      //   throw new IllegalArgumentException("Invalid maxBatchSize: " + config.getMaxBatchSize());
-      // }
-      // if (config.getMaxBatchWaitTime() < 0) {
-      //   throw new IllegalArgumentException("Invalid maxBatchWaitTime: " + config.getMaxBatchWaitTime());
-      // }
-      // if (config.getRetryDelay() < 0) {
-      //   throw new IllegalArgumentException("Invalid retryDelay: " + config.getRetryDelay());
-      // }
-    }
-  }
 
   public static Configuration load(String configPath) {
     ObjectMapper mapper =
@@ -105,20 +71,24 @@ public class Configuration {
     defaultConfig.setSourceMongoDB(sourceConfig);
     defaultConfig.setTargetMongoDB(targetConfig);
 
+    // Merge App config
+    if (userConfig.getApp() != null) {
+      AppConfiguration userApp = userConfig.getApp();
+      defaultConfig.setApp(userApp);
+    }
 
     // Merge encryption config
     if (userConfig.getEncryption() != null) {
       // EncryptionConfiguration defaultEnc = defaultConfig.getEncryption();
       EncryptionConfiguration userEnc = userConfig.getEncryption();
-
       defaultConfig.setEncryption(userEnc);
     }
 
     // Merge worker config
     if (userConfig.getWorker() != null) {
-      WorkerConfig defaultWorker = defaultConfig.getWorker();
-      WorkerConfig userWorker = userConfig.getWorker();
-
+      WorkerConfiguration defaultWorker = defaultConfig.getWorker();
+      WorkerConfiguration userWorker = userConfig.getWorker();
+      //
       defaultWorker.setMaxThreads(userWorker.getMaxThreads());
       defaultWorker.setMaxQueueSize(userWorker.getMaxQueueSize());
       defaultWorker.setMaxBatchSize(userWorker.getMaxBatchSize());
@@ -139,7 +109,7 @@ public class Configuration {
     EncryptionConfiguration.validate(config.getEncryption());
 
     // Validate worker config
-    WorkerConfig.validate(config.getWorker());
+    WorkerConfiguration.validate(config.getWorker());
 
     // Validate other configurations
   }
