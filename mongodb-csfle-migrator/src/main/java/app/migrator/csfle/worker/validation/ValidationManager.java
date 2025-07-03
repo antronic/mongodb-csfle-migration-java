@@ -262,7 +262,7 @@ public class ValidationManager {
           String[] resultArr = new String[5];
           resultArr[0] = sourceDatabase; // database
           resultArr[1] = sourceCollection; // collection
-          resultArr[2] = String.valueOf(validateByDocCompare.getTotalDocs()); // total docs
+          resultArr[2] = String.valueOf(validateByDocCompare.getTotalDocsExamined()); // total docs
 
           boolean isValid = validateByDocCompare.isValid();
           resultArr[3] = isValid ? "Match" : "Mismatch"; // result

@@ -44,6 +44,8 @@ public class ValidateByDocCompare {
   @Setter
   @Getter
   private long totalDocs;
+  @Getter
+  private long totalDocsExamined;
 
   @Getter
   private boolean isValid = true;
@@ -271,6 +273,7 @@ public class ValidateByDocCompare {
 
     // Compare each source document to its corresponding target document
     for (Document src : sourceDocs) {
+      this.totalDocsExamined++;
       Object id = src.get("_id");
       Document tgt = targetById.get(id);
 
