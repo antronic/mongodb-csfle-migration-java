@@ -252,7 +252,7 @@ class ValidateCommand implements Runnable {
             parent.setup();
             logger.info("Counting documents in source collection...");
 
-            ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.COUNT);
+            ValidationDriver driver = new ValidationDriver(parent.configuration, ValidationDriver.ValidationStrategy.DOC_COUNT);
             driver.setup()
                 .start();
             // driver.testConcurrent();

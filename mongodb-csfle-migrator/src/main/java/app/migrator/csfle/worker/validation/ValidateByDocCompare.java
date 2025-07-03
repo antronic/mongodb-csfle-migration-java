@@ -19,7 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCursor;
 
+import app.migrator.csfle.common.Constants;
 import app.migrator.csfle.service.mongodb.MongoReader;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,6 +48,9 @@ public class ValidateByDocCompare {
   @Getter
   private boolean isValid = true;
 
+  @Setter
+  private String readOperateionType = Constants.ReadOperationType.SKIP;
+
   /**
    * Creates a new document comparison validator.
    *
@@ -59,27 +64,24 @@ public class ValidateByDocCompare {
   }
 
   public void run() {
-    for (int i = 0; i < totalBatch; i++) {
-      int currentBatchSize = Math.min(batchSize, (int) (totalDocs - (i * batchSize)));
-
-      sourceReader
-        .setSkip(batchSize * i)
-        .setLimit(currentBatchSize);
-
-      targetReader
-        .setSkip(batchSize * i)
-        .setLimit(currentBatchSize);
-
-      logger.info("Batch: " + (i + 1) + " - Current batch size: " + currentBatchSize);
-
-      // logger.info("##################");
-      // logger.info("{}.{} Accumulated source count: {}", sourceReader.getDatabase(), sourceReader.getCollection(), accumulatedSourceCount);
-      // logger.info("{}.{} Accumulated target count: {}", targetReader.getDatabase(), targetReader.getCollection(), accumulatedTargetCount);
-      // logger.info("##################");
-
-      processBatch();
+    //
+    //
+    switch (this.readOperateionType) {
+      case Constants.ReadOperationType.CURSOR:
+        // Handle cursor-based reading
+        logger.info("Using cursor-based reading");
+        this.processCursor();
+        logger.info("Cursor processing completed");
+        break;
+      case Constants.ReadOperationType.SKIP:
+        // Handle skip-based reading
+        this.runSkip();
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown read operation type.");
     }
-
+    //
+    // Finalize batch processing
     logger.info(
         " --> Finalized batch with {} source documents and {} target documents. | Total batch: {}",
         sourceReader.getDatabase(),
@@ -88,7 +90,29 @@ public class ValidateByDocCompare {
       );
   }
 
-  private void processBatch() {
+  private void runCursor() {
+    // Implement cursor-based reading logic
+  }
+
+  private void runSkip() {
+    for (int i = 0; i < totalBatch; i++) {
+      int currentBatchSize = Math.min(batchSize, (int) (totalDocs - (i * batchSize)));
+      // Set skip and limit for source and target readers
+      sourceReader
+        .setSkip(batchSize * i)
+        .setLimit(currentBatchSize);
+      //
+      targetReader
+        .setSkip(batchSize * i)
+        .setLimit(currentBatchSize);
+
+      logger.info("Batch: " + (i + 1) + " - Current batch size: " + currentBatchSize);
+      //
+      processSkipBatch();
+    }
+  }
+
+  private void processSkipBatch() {
     Bson filter = new Document(
       "_id",
       new Document()
@@ -127,8 +151,11 @@ public class ValidateByDocCompare {
 			sourceDocs = sourceDocsFuture.get();
       targetDocs = targetDocsFuture.get();
 
+      List<Document> _sourceDocs = sourceDocs.into(new ArrayList<>()); // Fetch from source
+      List<Document> _targetDocs = targetDocs.into(new ArrayList<>()); // Fetch from target
+
       // Validate documents
-      validate(sourceDocs, targetDocs);
+      validate(_sourceDocs, _targetDocs);
 		} catch (InterruptedException e) {
       Thread.currentThread().interrupt();
 			logger.error(e.getMessage());
@@ -139,22 +166,95 @@ public class ValidateByDocCompare {
       executor.shutdown();
     }
   }
+  //
+  // Process a batch of documents using cursor
+  private void processCursor() {
+    Bson filter = new Document(
+      "_id",
+      new Document()
+        .append("$gte", new MinKey())
+        .append("$lte", new MaxKey())
+    );
+
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    // Cursor
+    MongoCursor<Document> sourceCursor = sourceReader.readWithCursor(filter);
+    MongoCursor<Document> targetCursor = targetReader.readWithCursor(filter);
+
+    try {
+        //
+        // ==============================================================================
+        while (sourceCursor.hasNext() && targetCursor.hasNext()) {
+          logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
+          logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
+          //
+          // Submit tasks to executor
+          Callable<List<Document>> sourceDocsTask = () -> {
+            logger.debug("{}: Reading source documents...", sourceReader.getNamespace());
+            //
+            List<Document> docs = retrieveByCursor(sourceCursor);
+            return docs;
+          };
+          //
+          Callable<List<Document>> targetDocsTask = () -> {
+            logger.debug("{}: Reading target documents...", targetReader.getNamespace());
+            //
+            List<Document> docs = retrieveByCursor(targetCursor);
+            return docs;
+          };
+          //
+          // ==============================================================================
+          //
+          // Submit tasks to executor
+          Future<List<Document>> sourceDocsFuture = executor.submit(sourceDocsTask);
+          Future<List<Document>> targetDocsFuture = executor.submit(targetDocsTask);
+          //
+          List<Document> sourceDocs;
+          List<Document> targetDocs;
+          //
+          sourceDocs = sourceDocsFuture.get();
+          targetDocs = targetDocsFuture.get();
+          //
+          // Validate documents
+          validate(sourceDocs, targetDocs);
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        logger.error(e.getMessage());
+      } catch (ExecutionException e) {
+        // Handle the exception
+        logger.error(e.getMessage());
+      } finally {
+        executor.shutdown();
+      }
+  }
+  //
+  // Helper method to retrieve documents from a MongoCursor
+  private List<Document> retrieveByCursor(MongoCursor<Document> cursor) {
+    List<Document> docs = new ArrayList<>();
+    // Keep reading documents while the cursor is valid
+    while (isValid && docs.size() < batchSize && cursor.hasNext()) {
+      // Process each document as needed
+      Document doc = cursor.next();
+      docs.add(doc);
+    }
+    return docs;
+  }
 
   /**
    * Validates document transfer by comparing source and target documents. This method checks for
    * missing or mismatched documents between the two collections.
    */
-  private void validate(FindIterable<Document> _sourceDocs, FindIterable<Document> _targetDocs) {
+  private void validate(List<Document> _sourceDocs, List<Document> _targetDocs) {
     // Implement logic to read documents from source and target collections
     // For example, using MongoDB Java driver to fetch documents
-    List<Document> sourceDocs = _sourceDocs.into(new ArrayList<>()); // Fetch from source
-    List<Document> targetDocs = _targetDocs.into(new ArrayList<>()); // Fetch from target
+    logger.info("{}: Processed batch with {} source documents and {} target documents.",
+                sourceReader.getNamespace(),
+                _sourceDocs.size(),
+                _targetDocs.size()
+              );
 
-    logger.info("Processed batch with {} source documents and {} target documents.",
-                sourceDocs.size(),
-                targetDocs.size());
-
-    compareDocs(sourceDocs, targetDocs);
+    compareDocs(_sourceDocs, _targetDocs);
   }
 
   /**
@@ -184,7 +284,7 @@ public class ValidateByDocCompare {
         logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
       } else {
         // Document exists in both and contents match
-        logger.debug("Document matched: _id={}", id);
+        // logger.debug("Document matched: _id={}", id);
       }
     }
   }

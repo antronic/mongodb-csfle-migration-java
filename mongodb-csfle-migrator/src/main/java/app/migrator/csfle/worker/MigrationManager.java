@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCursor;
 
+import app.migrator.csfle.common.Constants;
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.service.mongodb.MongoReader;
 import app.migrator.csfle.service.mongodb.MongoWriter;
@@ -98,7 +99,7 @@ public class MigrationManager {
     //
     // If readOperationType is "skip", we need to ensure the total count is set
     // If total count is zero, just create the collection in the target database
-    if (this.configuration.getWorker().getReadOperationType().equals("skip") && totalCount <= 0) {
+    if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP) && totalCount <= 0) {
       // Skip the validation if there are no documents to process
       logger.info("No documents to process in the source collection. {}", sourceCollection);
       if (configuration.getMigrationConfig().getMigrationOptions().isCreateCollectionEvenEmpty()) {
@@ -117,7 +118,7 @@ public class MigrationManager {
     logger.info("[START_MIG_COLL] {}.{} - Start process (date: {})", sourceDatabase, sourceCollection, new Date());
     //
     // Start the migration process
-    if (this.configuration.getWorker().getReadOperationType().equals("skip")) {
+    if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP)) {
       logger.info("Processing batch (skip,limit) for {}.{}", sourceDatabase, sourceCollection);
       for (int i = 0; i < batchCount; i++) {
         logger.info( "Batch: " + i  + " - " + sourceCollection);
@@ -138,7 +139,7 @@ public class MigrationManager {
         logger.info("Written (Skip) batch to target: {}.{} - Batch size: {} - Time taken: {} ms",
             sourceDatabase, sourceCollection, currentBatchSize, current.getTime() - lastMs.getTime());
       }
-    } else if (this.configuration.getWorker().getReadOperationType().equals("cursor")) {
+    } else if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.CURSOR)) {
       // Use cursor to read data
       logger.info("Processing cursor for {}.{}", sourceDatabase, sourceCollection);
       processBatchByCursor();
@@ -198,7 +199,7 @@ public class MigrationManager {
     //
     // Read operation type == skip
     // requires totalCount and batchCount
-    if (this.configuration.getWorker().getReadOperationType().equals("skip")) {
+    if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP)) {
       this.totalCount = getTotalCountInCollection();
       this.batchCount = getTotalRounds();
       logger.info("Total docs count: " + totalCount);

@@ -8,6 +8,7 @@ import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFact
 import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
+import app.migrator.csfle.common.Constants;
 import app.migrator.csfle.config.Configuration;
 
 public class Log4jConfig {
@@ -89,7 +90,7 @@ public class Log4jConfig {
             .add(builder.newAppenderRef("FileLogger"))
             .add(builder.newAppenderRef("ErrorFileLogger")));
 
-        if (config.getApp().getLogOptions().getLevel().equals("DEBUG")) {
+        if (config.getApp().getLogOptions().getLevel().toLowerCase().equals(Constants.LogLevel.DEBUG)) {
             builder.add(
                 builder.newLogger("app.migrator.csfle", Level.DEBUG)
                     // prevent log propagation to parent loggers

@@ -70,7 +70,7 @@ public class Report {
   private static String getTimestamp() {
     String format = "yyyy-MM-dd_HH-mm-ss";
     // Add logic to get the current timestamp
-    logger.info("Getting current timestamp");
+    logger.debug("Getting current timestamp");
     return new java.text.SimpleDateFormat(format).format(new java.util.Date());
   }
 

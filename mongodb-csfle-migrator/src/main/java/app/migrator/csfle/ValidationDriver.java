@@ -1,6 +1,8 @@
 package app.migrator.csfle;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,7 @@ import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.ValidationConfiguration;
+import app.migrator.csfle.misc.BoxPrinter;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.service.Report;
@@ -71,7 +74,7 @@ public class ValidationDriver {
    * generates reports, and performs cleanup.
    */
   public void start() {
-    logger.info("\n\nCollections Map: {}\n", this.collectionsMap);
+    long startTime = System.currentTimeMillis();
     // Initialize the worker thread pool
     workerManager.initializeWorkers();
     //
@@ -111,6 +114,19 @@ public class ValidationDriver {
       // Release all resources
       shutdown();
     }
+    long endTime = System.currentTimeMillis();
+
+    // logger.info("Validation process completed in {} ms", (endTime - startTime));
+    logger.info(
+      BoxPrinter.generateContent(
+          new ArrayList<>(
+            Arrays.asList(
+              "Total collections validated: " + this.totalTasks,
+              "Validation process completed in " + (endTime - startTime) + " ms",
+              "(Including validation processing time)"
+            ))
+          )
+      );
   }
 
   /**
@@ -211,7 +227,10 @@ public class ValidationDriver {
       logger.error("No collections to validate. Please check your configuration.");
       throw new RuntimeException("No collections to validate.");
     }
-    logger.info("Collections to validate: {}", this.collectionsMap);
+    // logger.info("Collections to validate: {}", this.collectionsMap);
+    logger.info(
+      BoxPrinter.generateContent("Collections to validate: " + this.collectionsMap)
+    );
 
     return this;
   }
@@ -222,20 +241,20 @@ public class ValidationDriver {
    */
   private void setupReport() {
     // Initialize report with validation strategy name
-    this.report = new Report(this.validationStrategy.value);
+    this.report = new Report(this.validationStrategy.value + "_" + this.config.getWorker().getReadOperationType());
 
     // Configure report columns based on validation strategy
     switch (this.validationStrategy) {
-      case COUNT:
+      case DOC_COUNT:
         // For count strategy: track database, collection, source count, target count, match result
         this.report
-          .setHeaders(new String[] { "Database", "Collection", "Source Count", "Target Count", "Result" });
+          .setHeaders(new String[] { "Database", "Collection", "Source Count", "Target Count", "Result", "Tooks (ms)" });
         break;
 
       case DOC_COMPARE:
         // For doc_compare strategy: track database, collection, total docs, detailed comparison result
         this.report
-          .setHeaders(new String[] { "Database", "Collection", "Total Source Documents", "Comparison Result" });
+          .setHeaders(new String[] { "Database", "Collection", "Total Source Documents", "Comparison Result", "Tooks (ms)" });
         break;
     }
   }
@@ -256,7 +275,7 @@ public class ValidationDriver {
    * Each strategy provides different levels of validation detail and performance characteristics.
    */
   public static enum ValidationStrategy {
-    COUNT("count"),           // Compare document counts between source and target collections
+    DOC_COUNT("count"),           // Compare document counts between source and target collections
     DOC_COMPARE("doc_compare"); // Compare individual document contents between collections
 
     @Getter

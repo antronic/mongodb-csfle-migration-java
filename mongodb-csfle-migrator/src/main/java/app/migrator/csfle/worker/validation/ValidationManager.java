@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.ValidationDriver;
+import app.migrator.csfle.common.Constants;
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.service.Report;
 import app.migrator.csfle.service.mongodb.MongoReader;
@@ -156,19 +157,24 @@ public class ValidationManager {
     if (sourceDatabase == null || sourceCollection == null) {
       throw new IllegalStateException("Source database or collection is not set.");
     }
-    if (batchSize <= 0) {
-      throw new IllegalArgumentException("Batch size must be greater than zero.");
-    }
     if (this.report == null) {
       throw new IllegalStateException("Report is not set.");
     }
+
+    // Validate read operation type
+    if (configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP)) {
+      if (batchSize <= 0) {
+        throw new IllegalArgumentException("Batch size must be greater than zero.");
+      }
+    }
+
     //
     // Setup reader connections
     sourceReader.setup(this.sourceMongoClient, sourceDatabase, sourceCollection);
     targetReader.setup(this.targetMongoClient, sourceDatabase, sourceCollection);
     //
     // Process the batch
-    if (totalCount <= 0) {
+    if (totalCount <= 0 && (this.validationStrategy == ValidationDriver.ValidationStrategy.DOC_COUNT || configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP))) {
       // Skip the validation if there are no documents to process
       logger.info("No documents to process in the source collection. {}", sourceCollection);
       if (!configuration.getValidationConfig().getValidationOptions().isValidateEmptyCollections()) {
@@ -176,7 +182,19 @@ public class ValidationManager {
         return;
       }
     }
-    processBatch();
+
+    switch (configuration.getWorker().getReadOperationType()) {
+      case Constants.ReadOperationType.CURSOR:
+        // Handle cursor-based reading
+        processBatch();
+        break;
+      case Constants.ReadOperationType.SKIP:
+        // Handle skip-based reading
+        processBatch();
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown read operation type.");
+    }
   }
 
   //----------------------------------------------------------------------
@@ -190,11 +208,14 @@ public class ValidationManager {
   private void processBatch() {
     logger.info("All tasks submitted. Waiting for completion...");
     switch (this.validationStrategy) {
-      case COUNT:
+      // =========== Counting ==============
+      case DOC_COUNT:
         {
           // Perform counting validation
           ValidateByCount validateByCount = initializeCounting();
+          long startTime = System.currentTimeMillis();
           validateByCount.count();
+          long endTime = System.currentTimeMillis();
           //
           //----------------------------------------------------------------------
           // Results Analysis
@@ -202,7 +223,7 @@ public class ValidationManager {
           long accumulatedSourceCount = validateByCount.getAccumulatedSourceCount();
           long accumulatedTargetCount = validateByCount.getAccumulatedTargetCount();
 
-          String[] resultArr = new String[5];
+          String[] resultArr = new String[6];
           resultArr[0] = sourceDatabase; // database
           resultArr[1] = sourceCollection; // collection
           resultArr[2] = String.valueOf(accumulatedSourceCount); // source count
@@ -218,23 +239,34 @@ public class ValidationManager {
             logger.info("{}.{} Document count match: {}", sourceDatabase, sourceCollection, accumulatedSourceCount);
           }
           logger.info("{}.{} Counting task completed for {}.{}", sourceDatabase, sourceCollection, sourceDatabase, sourceCollection);
+
+          long took = endTime - startTime;
+          resultArr[5] = String.valueOf(took); // took in ms
           //
           // Add data to the report
           this.report.addData(resultArr);
         }
         break;
+      // =========== Document Comparison ==============
       case DOC_COMPARE:
         {
           ValidateByDocCompare validateByDocCompare = initializeDocCompare();
-          validateByDocCompare.run();
+          validateByDocCompare.setReadOperateionType(
+            configuration.getWorker().getReadOperationType()
+            );
 
-          String[] resultArr = new String[4];
+          long startTime = System.currentTimeMillis();
+          validateByDocCompare.run();
+          long endTime = System.currentTimeMillis();
+
+          String[] resultArr = new String[5];
           resultArr[0] = sourceDatabase; // database
           resultArr[1] = sourceCollection; // collection
           resultArr[2] = String.valueOf(validateByDocCompare.getTotalDocs()); // total docs
 
           boolean isValid = validateByDocCompare.isValid();
           resultArr[3] = isValid ? "Match" : "Mismatch"; // result
+          resultArr[4] = String.valueOf(endTime - startTime); // tooks in ms
 
           this.report.addData(resultArr);
 
@@ -255,11 +287,14 @@ public class ValidationManager {
   public ValidationManager initialize() {
     // Initialize the validation process
     this.batchSize = configuration.getWorker().getMaxBatchSize();
-    this.totalCount = getTotalCountInCollection();
-    this.batchCount = getTotalRounds();
+    // If validation strategy is document count, or read operation type is skip
+    if (this.validationStrategy == ValidationDriver.ValidationStrategy.DOC_COUNT || configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP)) {
+      this.totalCount = getTotalCountInCollection();
+      this.batchCount = getTotalRounds();
 
-    logger.info("{}.{} | Total docs count: {}", sourceDatabase, sourceCollection, totalCount);
-    logger.info("{}.{} | Total batch count: {}", sourceDatabase, sourceCollection, batchCount);
+      logger.info("{}.{} | Total docs count: {}", sourceDatabase, sourceCollection, totalCount);
+      logger.info("{}.{} | Total batch count: {}", sourceDatabase, sourceCollection, batchCount);
+    }
 
     this.isInitialized = true;
 

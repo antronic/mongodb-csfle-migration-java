@@ -83,14 +83,21 @@ public class MongoReader {
     }
   }
 
-  // Use Cursor to iterate over documents instead of skip and limit
   public MongoCursor<Document> readWithCursor() {
+    return this.readWithCursor(new Document());
+  }
+
+  public String getNamespace() {
+    return this.database + "." + this.collection;
+  }
+
+  // Use Cursor to iterate over documents instead of skip and limit
+  public MongoCursor<Document> readWithCursor(Bson filter) {
     try {
       MongoCursor<Document> cursor = mongoClient
           .getDatabase(database)
           .getCollection(collection)
           .find()
-          .skip(skip)
           .sort(new Document("_id", 1))
           .cursor();
 

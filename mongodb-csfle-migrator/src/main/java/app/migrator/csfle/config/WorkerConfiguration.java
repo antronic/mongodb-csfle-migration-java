@@ -2,6 +2,7 @@ package app.migrator.csfle.config;
 
 import java.util.Arrays;
 
+import app.migrator.csfle.common.Constants;
 import lombok.Data;
 
 @Data
@@ -15,11 +16,11 @@ public class WorkerConfiguration {
   //
   // Read configuration
   // Type of read operation (cursor or skip)
-  private String readOperationType = "cursor";
+  private String readOperationType = Constants.ReadOperationType.CURSOR;
 
   public static void validate(WorkerConfiguration config) {
     // Read operation type, can be "cursor" or "skip"
-    if (!Arrays.asList("cursor", "skip").contains(config.getReadOperationType())) {
+    if (!Arrays.asList(Constants.ReadOperationType.CURSOR, Constants.ReadOperationType.SKIP).contains(config.getReadOperationType())) {
       throw new IllegalArgumentException("Invalid readOperationType: " + config.getReadOperationType());
     }
     // if (config.getMaxThreads() <= 0) {
