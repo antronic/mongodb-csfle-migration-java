@@ -184,51 +184,56 @@ public class ValidateByDocCompare {
     MongoCursor<Document> targetCursor = targetReader.readWithCursor(filter);
 
     try {
+      // Check if cursors are valid
+      if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
+        logger.warn("Source or target cursor is empty");
+        this.isValid = false;
+      }
+      //
+      // ==============================================================================
+      while (sourceCursor.hasNext() && targetCursor.hasNext()) {
+        logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
+        logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
+        //
+        // Submit tasks to executor
+        Callable<List<Document>> sourceDocsTask = () -> {
+          logger.debug("{}: Reading source documents...", sourceReader.getNamespace());
+          //
+          List<Document> docs = retrieveByCursor(sourceCursor);
+          return docs;
+        };
+        //
+        Callable<List<Document>> targetDocsTask = () -> {
+          logger.debug("{}: Reading target documents...", targetReader.getNamespace());
+          //
+          List<Document> docs = retrieveByCursor(targetCursor);
+          return docs;
+        };
         //
         // ==============================================================================
-        while (sourceCursor.hasNext() && targetCursor.hasNext()) {
-          logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
-          logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
-          //
-          // Submit tasks to executor
-          Callable<List<Document>> sourceDocsTask = () -> {
-            logger.debug("{}: Reading source documents...", sourceReader.getNamespace());
-            //
-            List<Document> docs = retrieveByCursor(sourceCursor);
-            return docs;
-          };
-          //
-          Callable<List<Document>> targetDocsTask = () -> {
-            logger.debug("{}: Reading target documents...", targetReader.getNamespace());
-            //
-            List<Document> docs = retrieveByCursor(targetCursor);
-            return docs;
-          };
-          //
-          // ==============================================================================
-          //
-          // Submit tasks to executor
-          Future<List<Document>> sourceDocsFuture = executor.submit(sourceDocsTask);
-          Future<List<Document>> targetDocsFuture = executor.submit(targetDocsTask);
-          //
-          List<Document> sourceDocs;
-          List<Document> targetDocs;
-          //
-          sourceDocs = sourceDocsFuture.get();
-          targetDocs = targetDocsFuture.get();
-          //
-          // Validate documents
-          validate(sourceDocs, targetDocs);
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        logger.error(e.getMessage());
-      } catch (ExecutionException e) {
-        // Handle the exception
-        logger.error(e.getMessage());
-      } finally {
-        executor.shutdown();
+        //
+        // Submit tasks to executor
+        Future<List<Document>> sourceDocsFuture = executor.submit(sourceDocsTask);
+        Future<List<Document>> targetDocsFuture = executor.submit(targetDocsTask);
+        //
+        List<Document> sourceDocs;
+        List<Document> targetDocs;
+        //
+        sourceDocs = sourceDocsFuture.get();
+        targetDocs = targetDocsFuture.get();
+        //
+        // Validate documents
+        validate(sourceDocs, targetDocs);
       }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      logger.error(e.getMessage());
+    } catch (ExecutionException e) {
+      // Handle the exception
+      logger.error(e.getMessage());
+    } finally {
+      executor.shutdown();
+    }
   }
   //
   // Helper method to retrieve documents from a MongoCursor
@@ -287,7 +292,7 @@ public class ValidateByDocCompare {
         logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
       } else {
         // Document exists in both and contents match
-        // logger.debug("Document matched: _id={}", id);
+        logger.debug("Document matched: _id={}", id);
       }
     }
   }
