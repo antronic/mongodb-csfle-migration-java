@@ -255,8 +255,15 @@ public class ValidationManager {
             configuration.getWorker().getReadOperationType()
             );
 
+          boolean hasError = false;
+
           long startTime = System.currentTimeMillis();
-          validateByDocCompare.run();
+          try {
+            validateByDocCompare.run();
+          } catch (Exception e) {
+            logger.error("Error occurred during document comparison: {}", e.getMessage());
+            hasError = true;
+          }
           long endTime = System.currentTimeMillis();
 
           String[] resultArr = new String[5];
@@ -266,6 +273,8 @@ public class ValidationManager {
 
           boolean isValid = validateByDocCompare.isValid();
           resultArr[3] = isValid ? "Match" : "Mismatch"; // result
+          resultArr[3] = hasError ? "Error" : resultArr[3];
+
           resultArr[4] = String.valueOf(endTime - startTime); // tooks in ms
 
           this.report.addData(resultArr);

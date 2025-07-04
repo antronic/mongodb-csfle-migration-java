@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -204,7 +205,10 @@ public class ValidationDriver {
     if (dbs != null) {
       for (Map.Entry<String, List<String>> entry : dbs.getTargetToValidate().entrySet()) {
         String dbName = entry.getKey();
-        List<String> collections = entry.getValue();
+        List<String> collections = entry.getValue()
+          .stream()
+          .filter(c -> c != null && !c.trim().isEmpty())
+          .collect(Collectors.toList());
         //
         // Add non-empty collection lists to the validation map
         if (collections != null && !collections.isEmpty()) {

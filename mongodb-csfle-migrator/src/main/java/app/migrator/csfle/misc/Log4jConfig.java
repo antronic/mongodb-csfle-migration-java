@@ -40,7 +40,7 @@ public class Log4jConfig {
 
         // 2. Define the pattern layout with the new date format
         LayoutComponentBuilder layout = builder.newLayout("PatternLayout")
-            .addAttribute("pattern", "%d{yyyy-MM-dd_HH-mm-ss} [%t] %-5level %logger{36} - %msg%n");
+            .addAttribute("pattern", "%d{yyyy-MM-dd_HH-mm-ss} [%t] %-5level %logger{36} - \n\t%msg%n\n");
 
         // 3. Define the console appender
         AppenderComponentBuilder console = builder.newAppender("Console", "CONSOLE")

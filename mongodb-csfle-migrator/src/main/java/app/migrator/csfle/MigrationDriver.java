@@ -1,9 +1,12 @@
 package app.migrator.csfle;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +16,7 @@ import com.mongodb.client.MongoClient;
 
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.MigrationConfiguration;
+import app.migrator.csfle.misc.BoxPrinter;
 import app.migrator.csfle.service.MongoCSFLE;
 import app.migrator.csfle.service.MongoDBService;
 import app.migrator.csfle.worker.MigrationManager;
@@ -48,11 +52,14 @@ public class MigrationDriver {
   // This method is responsible for iterating over the collections to be migrated
   // and submitting migration tasks to the worker manager.
   public void startMigration() {
+    long startTime = System.currentTimeMillis();
     // Initialize the worker manager with the maximum number of threads and queue size
     workerManager.initializeWorkers();
     //
     // Log the planned task count
     logger.info("Planned task count: {}", this.totalTasks);
+    //
+    int totalCollections = collectionsMap.values().stream().mapToInt(List::size).sum();
     //
     // Iterate over the collections map and submit migration tasks for each collection
     try {
@@ -95,6 +102,18 @@ public class MigrationDriver {
     } finally {
       shutdown();
     }
+    long endTime = System.currentTimeMillis();
+    logger.info(
+
+      BoxPrinter.generateContent(
+          new ArrayList<>(
+            Arrays.asList(
+              "Total collections migrated: " + totalCollections,
+              "Migration process completed in " + (endTime - startTime) + " ms",
+              "(Including migration processing time)"
+            ))
+          )
+      );
   }
 
   /**
@@ -128,7 +147,10 @@ public class MigrationDriver {
     if (dbs != null) {
       for (Map.Entry<String, List<String>> entry : dbs.getTargetToMigrate().entrySet()) {
         String dbName = entry.getKey();
-        List<String> collections = entry.getValue();
+        List<String> collections = entry.getValue()
+          .stream()
+          .filter(c -> c != null && !c.trim().isEmpty())
+          .collect(Collectors.toList());
 
         if (collections != null && !collections.isEmpty()) {
           this.collectionsMap.put(dbName, collections);
@@ -149,6 +171,11 @@ public class MigrationDriver {
     // Define tasks count and latch
     this.totalTasks = this.collectionsMap.values().stream().mapToInt(List::size).sum();
     this.latch = new CountDownLatch(this.totalTasks);
+    //
+    // Log the collections to migrate
+    logger.info(
+      BoxPrinter.generateContent("Collections to migration: " + this.collectionsMap)
+    );
   }
 
   private void shutdown() {

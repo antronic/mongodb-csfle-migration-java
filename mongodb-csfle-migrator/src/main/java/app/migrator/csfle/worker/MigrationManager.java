@@ -89,7 +89,6 @@ public class MigrationManager {
     }
     //
     currentBatchIndex = 0;
-    currentBatchCount = getTotalRounds();
     //
     // Implement the logic to run the migration process
     // This could involve reading data from the source, processing it,
@@ -118,6 +117,7 @@ public class MigrationManager {
     logger.info("[START_MIG_COLL] {}.{} - Start process (date: {})", sourceDatabase, sourceCollection, new Date());
     //
     // Start the migration process
+    Timestamp currentTimeStartMigration = new Timestamp(new Date().getTime());
     if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.SKIP)) {
       logger.info("Processing batch (skip,limit) for {}.{}", sourceDatabase, sourceCollection);
       for (int i = 0; i < batchCount; i++) {
@@ -131,21 +131,23 @@ public class MigrationManager {
         sourceReader.setSkip(currentBatchIndex * batchSize);
         sourceReader.setLimit(currentBatchSize);
 
-        Timestamp lastMs = new Timestamp(new Date().getTime());
         // Use skip and limit to read data
-        processBatch();
-        //
         Timestamp current = new Timestamp(new Date().getTime());
+        processBatch();
+        Timestamp lastMs = new Timestamp(new Date().getTime());
+        //
         logger.info("Written (Skip) batch to target: {}.{} - Batch size: {} - Time taken: {} ms",
-            sourceDatabase, sourceCollection, currentBatchSize, current.getTime() - lastMs.getTime());
+        sourceDatabase, sourceCollection, currentBatchSize, current.getTime() - lastMs.getTime());
       }
     } else if (this.configuration.getWorker().getReadOperationType().equals(Constants.ReadOperationType.CURSOR)) {
       // Use cursor to read data
       logger.info("Processing cursor for {}.{}", sourceDatabase, sourceCollection);
       processBatchByCursor();
     }
+    Timestamp lastMsEndMigration = new Timestamp(new Date().getTime());
 
-    logger.info("[END_MIG_COLL] {}.{} - End process (date: {})", sourceDatabase, sourceCollection, new Date());
+    logger.info("[END_MIG_COLL] {}.{} - End process (date: {}) - Time taken: {} ms",
+        sourceDatabase, sourceCollection, new Date(), lastMsEndMigration.getTime() - currentTimeStartMigration.getTime());
   }
 
   private void processBatch() {
@@ -172,19 +174,19 @@ public class MigrationManager {
     //
     // Read documents from the cursor
     while (cursor.hasNext()) {
-      Timestamp lastMs = new Timestamp(new Date().getTime());
+      long lastMs = System.currentTimeMillis();
       Document doc = cursor.next();
       batchDocs.add(doc);
       //
       // Process the document
       if (batchDocs.size() >= this.batchSize || !cursor.hasNext()) {
-        // logger.info(sourceDatabase);
+        currentBatchCount++;
         // Write the batch to the target
         targetWriter.writeBatch(batchDocs);
         //
-        Timestamp current = new Timestamp(new Date().getTime());
-        logger.info("Written (Cursor) batch to target: {}.{} - Batch size: {} - Time taken: {} ms",
-            sourceDatabase, sourceCollection, batchDocs.size(), current.getTime() - lastMs.getTime());
+        long current = System.currentTimeMillis();
+        logger.info("{}.{}: Round {} - Written (Cursor) - Took: {} ms",
+            sourceDatabase, sourceCollection, currentBatchCount, current - lastMs);
         // Empty the batch
         batchDocs.clear();
       }

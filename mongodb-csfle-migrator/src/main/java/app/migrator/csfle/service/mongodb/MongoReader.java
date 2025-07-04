@@ -99,6 +99,7 @@ public class MongoReader {
           .getCollection(collection)
           .find()
           .sort(new Document("_id", 1))
+          .batchSize(batchSize)
           .cursor();
 
       return cursor;

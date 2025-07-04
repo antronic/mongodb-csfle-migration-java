@@ -50,6 +50,8 @@ public class ValidateByDocCompare {
   @Getter
   private boolean isValid = true;
 
+  private int batchCount = 0;
+
   @Setter
   private String readOperateionType = Constants.ReadOperationType.SKIP;
 
@@ -73,6 +75,7 @@ public class ValidateByDocCompare {
         // Handle cursor-based reading
         logger.info("Using cursor-based reading");
         this.processCursor();
+        this.totalBatch = this.batchCount;
         logger.info("Cursor processing completed");
         break;
       case Constants.ReadOperationType.SKIP:
@@ -192,19 +195,20 @@ public class ValidateByDocCompare {
       //
       // ==============================================================================
       while (sourceCursor.hasNext() && targetCursor.hasNext()) {
+        batchCount++;
         logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
         logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
         //
         // Submit tasks to executor
         Callable<List<Document>> sourceDocsTask = () -> {
-          logger.debug("{}: Reading source documents...", sourceReader.getNamespace());
+          logger.info("{}: Round {} - Reading -> source...", sourceReader.getNamespace(), batchCount);
           //
           List<Document> docs = retrieveByCursor(sourceCursor);
           return docs;
         };
         //
         Callable<List<Document>> targetDocsTask = () -> {
-          logger.debug("{}: Reading target documents...", targetReader.getNamespace());
+          logger.info("{}: Round {} - Reading -> target...", targetReader.getNamespace(), batchCount);
           //
           List<Document> docs = retrieveByCursor(targetCursor);
           return docs;
@@ -276,6 +280,8 @@ public class ValidateByDocCompare {
     Map<Object, Document> targetById =
         targetDocs.stream().collect(Collectors.toMap(doc -> doc.get("_id"), Function.identity()));
 
+    String ns = sourceReader.getNamespace();
+
     // Compare each source document to its corresponding target document
     for (Document src : sourceDocs) {
       this.totalDocsExamined++;
@@ -285,16 +291,19 @@ public class ValidateByDocCompare {
       if (tgt == null) {
         // Document exists in source but not in target
         isValid = false;
-        logger.warn("Missing document in target: _id={}", id);
+        logger.warn("{}: Missing document in target: _id={}", ns, id);
       } else if (!normalize(src).equals(normalize(tgt))) {
         // Documents exist in both, but contents don't match
         isValid = false;
-        logger.warn("Mismatch at _id={}\nSRC: {}\nTGT: {}", id, src.toJson(), tgt.toJson());
+        logger.warn("{}: Mismatch at _id={}", ns, id);
       } else {
         // Document exists in both and contents match
-        logger.debug("Document matched: _id={}", id);
+        // logger.debug("Document matched: _id={}", id);
+        // logger.debug("{}: Document matched: _id={}", ns, id);
       }
     }
+
+    logger.debug("{}: Round: {} - Total documents examined: {} = {}", ns, batchCount, totalDocsExamined, isValid);
   }
 
   /**

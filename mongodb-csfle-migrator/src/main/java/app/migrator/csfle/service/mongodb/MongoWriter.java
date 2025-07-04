@@ -52,7 +52,7 @@ public class MongoWriter {
             return;
         }
 
-        logger.info("Attempting to write {} documents to {}.{}",
+        logger.debug("Attempting to write {} documents to {}.{}",
             documents.size(), targetDatabase, targetCollection);
 
         try {
@@ -65,7 +65,7 @@ public class MongoWriter {
                 .ordered(false); // Allow unordered inserts
             collection.insertMany(documents, options);
 
-            logger.info("Successfully wrote {} documents to {}.{}",
+            logger.debug("Successfully wrote {} documents to {}.{}",
                 documents.size(), targetDatabase, targetCollection);
 
         } catch (MongoSecurityException e) {
