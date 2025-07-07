@@ -188,9 +188,14 @@ public class ValidateByDocCompare {
 
     try {
       // Check if cursors are valid
-      if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
+      if (!sourceCursor.hasNext() && !targetCursor.hasNext()) {
+        logger.warn("Both source and target cursors are empty");
+        this.isValid = true;
+        return;
+      } else if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
         logger.warn("Source or target cursor is empty");
         this.isValid = false;
+        return;
       }
       //
       // ==============================================================================
