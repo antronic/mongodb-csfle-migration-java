@@ -8,5 +8,6 @@ public class AppConfiguration {
   @Data
   public static class LogOptions {
     private String level = "INFO";
+    private boolean mongodbDriverLogEnabled = false;
   }
 }

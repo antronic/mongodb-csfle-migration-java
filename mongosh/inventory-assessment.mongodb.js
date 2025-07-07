@@ -1,8 +1,16 @@
 // ==================================================================
+// START - Configurable options
 //
 // Define constants
-const BIG_COLLECTION_THRESHOLD = 10000
 //
+// Define the big collection threshold, how many documents a collection must have to be considered "big"
+const BIG_COLLECTION_THRESHOLD = 5000000
+// Define the count type (actual or estimated)
+//
+// Available value: 'actual', 'estimated'
+const COUNT_TYPE = 'estimated'
+//
+// END - Configurable options
 // ==================================================================
 // List of databases to exclude from inventory assessment
 const EXCLUDED_DATABASES = ['admin', 'local', 'config']
@@ -38,7 +46,10 @@ function getTargetDatabasesAndCollections() {
   return targetDatabases
 }
 //
-
+/**
+ * Get the estimated document sizes for each collection in the target databases.
+ * @returns {Array} - An array of objects containing database and collection information.
+ */
 function getEstimatedCollectionDocsSizes() {
   const data = []
   //
@@ -53,22 +64,56 @@ function getEstimatedCollectionDocsSizes() {
   return data
 }
 //
+/**
+ * Get the actual document sizes for each collection in the target databases.
+ * @returns {Array} - An array of objects containing database and collection information.
+ */
+function getActualCollectionDocsSize() {
+  const data = []
+  //
+  for (const dbInfo of targetDatabases) {
+    const currentDatabase = { db: dbInfo.db, collections: {} }
+    for (const [collName] of Object.entries(dbInfo.collections)) {
+      const actualDocs = db.getSiblingDB(dbInfo.db).getCollection(collName).countDocuments()
+      currentDatabase.collections[collName] = actualDocs
+    }
+    data.push(currentDatabase)
+  }
+  return data
+}
 
+//
+/**
+ * Generate a CSV representation of the inventory assessment data.
+ * @param {*} data - The inventory assessment data.
+ * @returns {string} - The CSV representation of the data.
+ */
 function generateCSV(data) {
   const csvRows = []
+  //
+  const totalDocColName = COUNT_TYPE === 'actual' ? 'Actual Documents' : 'Estimated Documents'
   // Get the headers
-  const headers = ['Database', 'Collection', 'Estimated Documents', 'Size class']
+  const headers = ['Database', 'Collection', totalDocColName, 'Size class']
   csvRows.push(headers.join(','))
 
   // Format the data
   for (const dbInfo of data) {
-    for (const [collName, estimatedDocs] of Object.entries(dbInfo.collections)) {
-      const sizeClass = estimatedDocs > BIG_COLLECTION_THRESHOLD ? 'big' : 'small'
-      const row = [dbInfo.db, collName, estimatedDocs, sizeClass]
+    for (const [collName, docCount] of Object.entries(dbInfo.collections)) {
+      const sizeClass = docCount > BIG_COLLECTION_THRESHOLD ? 'big' : 'small'
+      const row = [dbInfo.db, collName, docCount, sizeClass]
       csvRows.push(row.join(','))
     }
   }
   return csvRows.join('\n')
 }
 
-console.log(generateCSV(getEstimatedCollectionDocsSizes()))
+// const startMs = Date.now()
+if (COUNT_TYPE === 'actual') {
+  console.log(generateCSV(getActualCollectionDocsSize()))
+} else if (COUNT_TYPE === 'estimated') {
+  console.log(generateCSV(getEstimatedCollectionDocsSizes()))
+} else {
+  throw new Error('[X] Invalid COUNT_TYPE specified.')
+}
+// const endMs = Date.now()
+// print(`[> ] Inventory assessment completed in ${endMs - startMs} ms`)

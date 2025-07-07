@@ -41,7 +41,8 @@
   },
   "app": {
     "logOptions": {
-      "level": "debug"
+      "level": "debug",
+      "mongodbDriverLogEnabled": true
     }
   }
 }

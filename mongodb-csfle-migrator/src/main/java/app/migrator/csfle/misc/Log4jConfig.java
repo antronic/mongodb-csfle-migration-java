@@ -83,7 +83,15 @@ public class Log4jConfig {
         builder.add(errorFile);
 
         // 6. Add loggers
-        builder.add(builder.newLogger("org.mongodb.driver", Level.OFF));
+        if (!config.getApp().getLogOptions().isMongodbDriverLogEnabled()) {
+            // builder.add(builder.newLogger("org.mongodb.driver", Level.WARN)
+            //     // prevent log propagation to parent loggers
+            //     .addAttribute("additivity", false)
+            //     .add(builder.newAppenderRef("Console"))
+            //     .add(builder.newAppenderRef("FileLogger"))
+            //     .add(builder.newAppenderRef("ErrorFileLogger")));
+            builder.add(builder.newLogger("org.mongodb.driver", Level.OFF));
+        }
 
         builder.add(builder.newRootLogger(Level.INFO)
             .add(builder.newAppenderRef("Console"))
