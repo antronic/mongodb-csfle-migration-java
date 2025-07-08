@@ -5,7 +5,7 @@
 
   <groupId>app</groupId>
   <artifactId>mongodb-csfle-migrator</artifactId>
-  <version>1.3.5-SNAPSHOT</version>
+  <version>1.4.0-SNAPSHOT</version>
 
   <name>mongodb-csfle-migrator</name>
   <!-- FIXME change it to the project's website -->
@@ -34,7 +34,7 @@
       <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongodb-driver-bom</artifactId>
-        <version>5.4.0</version>
+        <version>5.5.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

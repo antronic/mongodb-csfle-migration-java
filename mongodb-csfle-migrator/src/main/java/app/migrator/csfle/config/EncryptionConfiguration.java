@@ -28,6 +28,7 @@ public class EncryptionConfiguration {
   private String keyStoreType;
   private String trustStoreType;
   private String keyVaultNamespace;
+  private long keyExpirationSeconds = 3600;
 
   public static void validate(EncryptionConfiguration config) {
 

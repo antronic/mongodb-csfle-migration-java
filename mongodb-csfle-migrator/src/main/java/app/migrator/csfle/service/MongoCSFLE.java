@@ -175,11 +175,15 @@ public class MongoCSFLE {
             .schemaMap(schemaMap)
             .extraOptions(extraOptions)
             .kmsProviderSslContextMap(this.createKmipSSLContextMap())
+            .keyExpiration(this.configuration.getEncryption().getKeyExpirationSeconds(), TimeUnit.SECONDS)
             .build();
 
     this.mongoClientSettingsBuilder =
         MongoClientSettings.builder()
             .applyConnectionString(new ConnectionString(this.mongoUri))
+            //
+            // Configure through the connection string instead (with w parameter)
+            // .writeConcern(WriteConcern.W1)
             .applyToConnectionPoolSettings(
                 builder -> {
                   builder.minSize(0);
@@ -191,6 +195,9 @@ public class MongoCSFLE {
                   builder.readTimeout(10, TimeUnit.SECONDS);
                 })
             .autoEncryptionSettings(autoEncryptionSettings);
+
+    Long kmipKeyExpiration = this.autoEncryptionSettings.getKeyExpiration(TimeUnit.SECONDS);
+    logger.debug("KMIP Key Expiration (seconds): " + (kmipKeyExpiration == 0 ? "no expiration" : kmipKeyExpiration));
   }
 
   private void setupClientEncryption() throws Exception {
