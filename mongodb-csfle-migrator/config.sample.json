@@ -10,7 +10,7 @@
     "authSource": "$external"
   },
   "targetMongoDB": {
-    "uri": "mongodb://<username>:<password>@localhost:27020/?socketTimeoutMS=50000&connectTimeoutMS=50000",
+    "uri": "mongodb://<username>:<password>@localhost:27020/?socketTimeoutMS=50000&connectTimeoutMS=50000&w=1",
     "tls": true,
     "tlsTrustStorePath": "./certs/tls/target/truststore.jks",
     "tlsTrustStorePassword": "<password>",
