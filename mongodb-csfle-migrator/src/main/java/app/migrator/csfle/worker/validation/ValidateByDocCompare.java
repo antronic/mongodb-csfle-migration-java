@@ -18,6 +18,7 @@ import org.bson.types.MinKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.MongoInternalException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 
@@ -189,20 +190,24 @@ public class ValidateByDocCompare {
     try {
       // Check if cursors are valid
       if (!sourceCursor.hasNext() && !targetCursor.hasNext()) {
-        logger.warn("Both source and target cursors are empty");
+        logger.warn("{}: Both source and target cursors are empty", sourceReader.getNamespace());
         this.isValid = true;
-        return;
-      } else if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
-        logger.warn("Source or target cursor is empty");
-        this.isValid = false;
         return;
       }
       //
       // ==============================================================================
-      while (sourceCursor.hasNext() && targetCursor.hasNext()) {
+      while (sourceCursor.hasNext() || targetCursor.hasNext()) {
         batchCount++;
         logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
         logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
+
+        if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
+          logger.warn("{}: Source or target cursor is empty | Source cursor: {}, Target cursor: {}",
+              sourceReader.getNamespace(), sourceCursor.hasNext(), targetCursor.hasNext());
+          this.isValid = false;
+          return;
+        }
+
         //
         // Submit tasks to executor
         Callable<List<Document>> sourceDocsTask = () -> {
@@ -237,10 +242,11 @@ public class ValidateByDocCompare {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.error(e.getMessage());
-    } catch (ExecutionException e) {
+    } catch (ExecutionException | MongoInternalException e) {
       // Handle the exception
-      logger.error(e.getMessage());
+      logger.error(e.getMessage(), e);
     } finally {
+      logger.debug("{}: Shutting down executor service.", sourceReader.getNamespace());
       executor.shutdown();
     }
   }

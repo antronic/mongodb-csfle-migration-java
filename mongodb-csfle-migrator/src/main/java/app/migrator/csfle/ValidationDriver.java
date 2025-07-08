@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -53,6 +55,7 @@ public class ValidationDriver {
   //
   // Latch to synchronize completion of all validation tasks
   private CountDownLatch latch;
+  private Phaser phaser;
 
   /**
    * Creates a new ValidationDriver with specified configuration and validation strategy.
@@ -91,20 +94,29 @@ public class ValidationDriver {
         //
         // Submit validation tasks for each collection in the database
         for (String collectionName : collections) {
+
           this.startValidation(dbName, collectionName);
         }
       }
 
-      // Wait for all tasks to complete using the countdown latch
-      logger.info("Waiting for all validation tasks to complete...");
-      this.latch.await();
-      logger.info("All validation tasks completed successfully.");
+      // Wait for all tasks to complete
+      logger.info("Waiting for all validation tasks to complete. Latch count: {}", this.latch.getCount());
+      boolean completed = this.latch.await(30, TimeUnit.MINUTES); // Add timeout to prevent infinite wait
+
+      if (!completed) {
+          logger.error("Timeout waiting for validation tasks to complete! Remaining tasks: {}", this.latch.getCount());
+      } else {
+          logger.info("All validation tasks completed successfully.");
+      }
 
     } catch (InterruptedException e) {
       logger.error("Error while waiting for validation tasks to complete: {}", e.getMessage());
       Thread.currentThread().interrupt(); // Restore interrupted state
       e.printStackTrace();
     } finally {
+      // Verify task completion before generating report
+      workerManager.verifyAllTasksCompleted();
+
       logger.debug("All tasks completed, generating report and cleaning up resources");
       // Generate the validation report with results
       try {
@@ -258,7 +270,7 @@ public class ValidationDriver {
       case DOC_COMPARE:
         // For doc_compare strategy: track database, collection, total docs, detailed comparison result
         this.report
-          .setHeaders(new String[] { "Database", "Collection", "Total Source Documents", "Comparison Result", "Tooks (ms)" });
+          .setHeaders(new String[] { "Database", "Collection", "Total Examined Documents", "Comparison Result", "Tooks (ms)" });
         break;
     }
   }

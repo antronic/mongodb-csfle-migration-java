@@ -1,13 +1,16 @@
 package app.migrator.csfle.worker;
 
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +29,10 @@ public class WorkerManager {
   private final BlockingQueue<WorkerTask> taskQueue;
   private final Map<String, WorkerStatus> workerStatus;
 
+  private final AtomicInteger submittedTaskCount = new AtomicInteger(0);
+  private final AtomicInteger completedTaskCount = new AtomicInteger(0);
+  private final ConcurrentHashMap<String, Boolean> taskTracker = new ConcurrentHashMap<>();
+
   /**
    * Creates a new WorkerManager with specified capacity.
    *
@@ -35,7 +42,7 @@ public class WorkerManager {
   public WorkerManager(int maxWorkers, int queueSize) {
     this.maxWorkers = maxWorkers;
     this.executorService = Executors.newFixedThreadPool(maxWorkers);
-    this.taskQueue = new ArrayBlockingQueue<>(queueSize);
+    this.taskQueue = new LinkedBlockingQueue<>(queueSize);
     this.workerStatus = new ConcurrentHashMap<>();
   }
 
@@ -68,11 +75,46 @@ public class WorkerManager {
    * @throws InterruptedException if the task submission is interrupted
    */
   public void submitTask(String collection, Runnable task, CountDownLatch latch) throws InterruptedException {
+    int taskId = submittedTaskCount.incrementAndGet();
+    logger.info("TASK_SUBMISSION_START: [{}] Collection: {}, Current queue size: {}",
+               taskId, collection, taskQueue.size());
+    taskTracker.put(collection, false); // Mark as not completed
+
     Runnable wrappedTask = () -> {
       try {
-        task.run();
+        logger.debug("TASK_EXECUTION_START: [{}] Collection: {}", taskId, collection);
+
+        // Execute the user's task with robust error handling
+        try {
+          task.run();
+          logger.debug("TASK_EXECUTION_COMPLETE: [{}] Collection: {}", taskId, collection);
+        } catch (OutOfMemoryError oom) {
+          logger.error("TASK_OOM_ERROR: [{}] Collection: {} encountered OOM: {}",
+                     taskId, collection, oom.getMessage());
+          System.gc(); // Request GC
+          try {
+            Thread.sleep(2000); // Give GC time
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+          }
+        } catch (Throwable t) {
+          logger.error("TASK_EXECUTION_ERROR: [{}] Collection: {} failed with: {}",
+                     taskId, collection, t.getMessage(), t);
+        }
       } finally {
+        // ALWAYS update counters and countdown the latch regardless of success/failure
+        completedTaskCount.incrementAndGet();
+        taskTracker.put(collection, true); // Mark as completed
+
+        // Log before countdown to avoid race conditions in log output
+        logger.debug("TASK_COMPLETING: [{}] Collection: {}, Will countdown latch from: {}",
+                   taskId, collection, latch.getCount());
+
+        // Actually countdown the latch
         latch.countDown();
+
+        logger.debug("TASK_LATCH_COUNTDOWN: [{}] Collection: {}, Remaining: {}",
+                   taskId, collection, latch.getCount());
       }
     };
 
@@ -85,49 +127,64 @@ public class WorkerManager {
     //
     // Retry logic for task submission
     // This is a simple retry mechanism. In a real-world scenario, you might want to use
-    // while (retryCount < maxRetries) {
     //
-    // Retry until the task is successfully added to the queue or interrupted
-    while (!Thread.currentThread().isInterrupted()) {
-      try {
-        logger.debug("Attempting to submit task for collection: {}", collection);
-        boolean offered = taskQueue.offer(workerTask, Integer.MAX_VALUE, TimeUnit.HOURS);
+    while (retryCount < maxRetries) {
+    try {
+        logger.info("QUEUE_ATTEMPT: [{}] Collection: {}, Attempt: {}/{}, Queue size: {}/{}",
+                  taskId, collection, retryCount+1, maxRetries,
+                  taskQueue.size(), taskQueue.size() + taskQueue.remainingCapacity());
+
+        boolean offered = taskQueue.offer(workerTask, Integer.MAX_VALUE, TimeUnit.SECONDS);
+
         if (offered) {
-          logger.debug("Task submitted for collection: {}", collection);
-          processQueue();
-          return;
+            logger.info("QUEUE_SUCCESS: [{}] Collection: {}, Queue size now: {}",
+                      taskId, collection, taskQueue.size());
+            processQueue();
+            return;
         }
 
+        logger.warn("QUEUE_FULL: [{}] Collection: {}, Retry: {}/{}",
+                  taskId, collection, retryCount+1, maxRetries);
         retryCount++;
-        if (retryCount < maxRetries) {
-          logger.warn("Queue full for collection {}, retry {}/{} after {} ms", collection,
-              retryCount, maxRetries, retryDelay);
-          Thread.sleep(retryDelay);
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        logger.warn("Task submission interrupted for collection: {}", collection);
-        throw new RuntimeException("Task submission interrupted for collection: " + collection, e);
-      }
-    }
 
-    // If we get here, all retries failed
-    throw new RuntimeException(
-        String.format("Failed to submit task for collection %s after %d retries - queue full",
-            collection, maxRetries));
+        // More aggressive retry behavior - exponential backoff
+        long currentDelay = retryDelay * (long)Math.pow(2, retryCount-1);
+        currentDelay = Math.min(currentDelay, 30000); // Cap at 30 seconds
+
+        if (retryCount < maxRetries) {
+            logger.warn("QUEUE_RETRY: [{}] Collection: {}, Waiting: {}ms before retry",
+                      taskId, collection, currentDelay);
+            Thread.sleep(currentDelay);
+        }
+    } catch (InterruptedException e) {
+        logger.error("TASK_INTERRUPTED: [{}] Collection: {}", taskId, collection, e);
+        Thread.currentThread().interrupt();
+        throw e; // Re-throw rather than wrapping
+    }
+}
+
+// If we get here, all retries failed - this is CRITICAL
+logger.error("TASK_SUBMISSION_FAILED: [{}] Collection: {} after {} attempts",
+            taskId, collection, maxRetries);
+throw new RuntimeException("Failed to submit task: " + collection);
   }
 
   /**
    * Processes queued tasks if workers are available.
    */
   private void processQueue() {
-    if (getAvailableWorkers() > 0 && !taskQueue.isEmpty()) {
+    logger.debug("Processing task queue. Available workers: {}, Queue size: {}",
+    getAvailableWorkers(), taskQueue.size());
+
+    String workerId = assignWorker();
+    if (getAvailableWorkers() > 0 && !taskQueue.isEmpty() && workerId != null) {
       WorkerTask task = taskQueue.poll();
+      logger.debug("Polled task from queue: {}", task);
       if (task != null) {
-        String workerId = assignWorker();
-        if (workerId != null) {
-          executeTask(workerId, task);
-        }
+        logger.debug("Dequeued task for collection: {}", task.getCollection());
+        executeTask(workerId, task);
+      } else {
+        logger.warn("No available task found for worker: {}", workerId);
       }
     }
   }
@@ -165,15 +222,22 @@ public class WorkerManager {
     status.setStartTime(System.currentTimeMillis());
 
     this.executorService.submit(() -> {
-      try {
-        task.getTask().run();
-      } finally {
-        logger.info("Task completed for collection: {}", task.getCollection());
-        status.setBusy(false);
-        status.setCurrentCollection(null);
-        status.setProcessedDocuments(status.getProcessedDocuments() + 1);
-        processQueue(); // Process next task if available
-      }
+        try {
+            logger.debug("WORKER_EXECUTING: Worker {} starting task for collection {}",
+                         workerId, task.getCollection());
+            task.getTask().run();
+            logger.debug("WORKER_COMPLETED: Worker {} finished task for collection {}",
+                         workerId, task.getCollection());
+        } catch (Exception e) {
+            logger.error("WORKER_ERROR: Worker {} failed processing collection {}: {}",
+                         workerId, task.getCollection(), e.getMessage(), e);
+        } finally {
+            logger.info("Task completed for collection: {}", task.getCollection());
+            status.setBusy(false);
+            status.setCurrentCollection(null);
+            status.setProcessedDocuments(status.getProcessedDocuments() + 1);
+            processQueue(); // Process next task if available
+        }
     });
   }
 
@@ -201,9 +265,10 @@ public class WorkerManager {
    * shutdown after timeout.
    */
   public void shutdown() {
+    logger.debug("Shutting down worker manager...");
     this.executorService.shutdown();
     try {
-      if (!this.executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS)) {
+      if (!this.executorService.awaitTermination(60, TimeUnit.SECONDS)) {
         logger.warn("Forcing shutdown of executor service...");
 
         this.executorService.shutdownNow();
@@ -214,12 +279,24 @@ public class WorkerManager {
     }
   }
 
-  public void awaitTermination() {
-    try {
-      this.shutdown();
-      this.executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+  /**
+   * Verifies if all submitted tasks are completed.
+   */
+  public void verifyAllTasksCompleted() {
+    logger.info("TASK_VERIFICATION: Submitted: {}, Completed: {}",
+               submittedTaskCount.get(), completedTaskCount.get());
+
+    List<String> incompleteCollections = taskTracker.entrySet().stream()
+        .filter(e -> !e.getValue())
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
+
+    if (!incompleteCollections.isEmpty()) {
+        logger.error("INCOMPLETE_TASKS: {} collections were not processed: {}",
+                    incompleteCollections.size(), incompleteCollections);
+    } else {
+        logger.info("ALL_TASKS_COMPLETED: All {} collections were processed successfully",
+                   taskTracker.size());
     }
   }
 }
