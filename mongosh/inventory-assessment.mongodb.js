@@ -10,6 +10,10 @@ const BIG_COLLECTION_THRESHOLD = 5000000
 // Available value: 'actual', 'estimated'
 const COUNT_TYPE = 'estimated'
 //
+//
+// Masking data
+const IS_REDACTED = true
+//
 // END - Configurable options
 // ==================================================================
 // List of databases to exclude from inventory assessment
@@ -89,6 +93,12 @@ function getActualCollectionDocsSize() {
  * @returns {string} - The CSV representation of the data.
  */
 function generateCSV(data) {
+  let _data = data
+
+  if (IS_REDACTED) {
+    _data = createMaskingData(data)
+  }
+
   const csvRows = []
   //
   const totalDocColName = COUNT_TYPE === 'actual' ? 'Actual Documents' : 'Estimated Documents'
@@ -97,7 +107,7 @@ function generateCSV(data) {
   csvRows.push(headers.join(','))
 
   // Format the data
-  for (const dbInfo of data) {
+  for (const dbInfo of _data) {
     for (const [collName, docCount] of Object.entries(dbInfo.collections)) {
       const sizeClass = docCount > BIG_COLLECTION_THRESHOLD ? 'big' : 'small'
       const row = [dbInfo.db, collName, docCount, sizeClass]
@@ -105,6 +115,23 @@ function generateCSV(data) {
     }
   }
   return csvRows.join('\n')
+}
+//
+//
+function createMaskingData(data) {
+  console.log(data)
+  const maskingData = []
+  let dbCount = 0
+
+  data.forEach((dbInfo) => {
+    let collCount = 0
+    const maskedDatabaseName = `db_${dbCount++}`
+    const maskedCollections = Object.keys(dbInfo.collections).map((collName) => {
+      return `${maskedDatabaseName}_coll_${collCount++}`
+    })
+    maskingData.push({ db: maskedDatabaseName, collections: maskedCollections })
+  })
+  return maskingData
 }
 
 // const startMs = Date.now()
