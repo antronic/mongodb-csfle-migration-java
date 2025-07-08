@@ -8,9 +8,9 @@ import lombok.Data;
 @Data
 public class WorkerConfiguration {
   private int maxThreads = 10;
-  private int maxQueueSize = 1000;
-  private int maxBatchSize = 100;
-  private int maxBatchWaitTime = Integer.MAX_VALUE; // in millisecondsprivate int maxBatchSize = 100;
+  private int maxQueueSize = 10000;
+  private int maxBatchSize = 1000;
+  private int maxBatchWaitTime = Integer.MAX_VALUE; // in milliseconds
   private int retryDelay = 1000; // in milliseconds
   private boolean enableLogging = true;
   //
