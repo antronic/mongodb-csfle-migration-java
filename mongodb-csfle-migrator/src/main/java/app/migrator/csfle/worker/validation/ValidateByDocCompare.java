@@ -308,24 +308,29 @@ public class ValidateByDocCompare {
 
     String ns = sourceReader.getNamespace();
 
-    // Compare each source document to its corresponding target document
-    for (Document src : sourceDocs) {
-      this.totalDocsExamined++;
-      Object id = src.get("_id");
-      Document tgt = targetById.get(id);
+    if (sourceDocs.size() != targetDocs.size()) {
+      isValid = false;
+      logger.warn("{}: Document count mismatch: source={}, target={}", ns, sourceDocs.size(), targetDocs.size());
+    } else {
+       // Compare each source document to its corresponding target document
+      for (Document src : sourceDocs) {
+        this.totalDocsExamined++;
+        Object id = src.get("_id");
+        Document tgt = targetById.get(id);
 
-      if (tgt == null) {
-        // Document exists in source but not in target
-        isValid = false;
-        logger.warn("{}: Missing document in target: _id={}", ns, id);
-      } else if (!normalize(src).equals(normalize(tgt))) {
-        // Documents exist in both, but contents don't match
-        isValid = false;
-        logger.warn("{}: Mismatch at _id={}", ns, id);
-      } else {
-        // Document exists in both and contents match
-        // logger.debug("Document matched: _id={}", id);
-        // logger.debug("{}: Document matched: _id={}", ns, id);
+        if (tgt == null) {
+          // Document exists in source but not in target
+          isValid = false;
+          logger.warn("{}: Missing document in target: _id={}", ns, id);
+        } else if (!normalize(src).equals(normalize(tgt))) {
+          // Documents exist in both, but contents don't match
+          isValid = false;
+          logger.warn("{}: Mismatch at _id={}", ns, id);
+        } else {
+          // Document exists in both and contents match
+          // logger.debug("Document matched: _id={}", id);
+          // logger.debug("{}: Document matched: _id={}", ns, id);
+        }
       }
     }
 
