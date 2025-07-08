@@ -175,7 +175,12 @@ public class MongoCSFLE {
             .schemaMap(schemaMap)
             .extraOptions(extraOptions)
             .kmsProviderSslContextMap(this.createKmipSSLContextMap())
-            .keyExpiration(this.configuration.getEncryption().getKeyExpirationSeconds(), TimeUnit.SECONDS)
+            .keyExpiration(
+              this.configuration
+                .getEncryption()
+                .getKeyExpirationSeconds(),
+              TimeUnit.SECONDS
+            )
             .build();
 
     this.mongoClientSettingsBuilder =
