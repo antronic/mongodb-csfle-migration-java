@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 
+import app.migrator.csfle.common.Constants;
 import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.ValidationConfiguration;
 import app.migrator.csfle.misc.BoxPrinter;
@@ -269,9 +270,20 @@ public class ValidationDriver {
 
       case DOC_COMPARE:
         // For doc_compare strategy: track database, collection, total docs, detailed comparison result
-        this.report
-          .setHeaders(new String[] { "Database", "Collection", "Total Examined Documents", "Comparison Result", "Tooks (ms)" });
-        break;
+        switch (this.config.getWorker().getReadOperationType()) {
+
+          case Constants.ReadOperationType.CURSOR:
+            this.report
+            .setHeaders(new String[] { "Database", "Collection", "Total Examined Documents", "Comparison Result", "Tooks (ms)" });
+            // Future feature
+              // .setHeaders(new String[] { "Database", "Collection", "Total Examined Documents", "Comparison Result", "Source Cursor", "Target Cursor", "Tooks (ms)" });
+            break;
+
+          case Constants.ReadOperationType.SKIP:
+            this.report
+              .setHeaders(new String[] { "Database", "Collection", "Total Examined Documents", "Comparison Result", "Tooks (ms)" });
+            break;
+        }
     }
   }
 

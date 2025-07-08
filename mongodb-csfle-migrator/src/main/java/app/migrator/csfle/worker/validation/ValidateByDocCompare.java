@@ -38,6 +38,12 @@ public class ValidateByDocCompare {
   private final MongoReader sourceReader;
   private final MongoReader targetReader;
 
+  @Getter
+  private boolean sourceCursorHasNext = false;
+
+  @Getter
+  private boolean targetCursorHasNext = false;
+
   @Setter
   private int batchSize = 1000;
   @Setter
@@ -192,6 +198,9 @@ public class ValidateByDocCompare {
       if (!sourceCursor.hasNext() && !targetCursor.hasNext()) {
         logger.warn("{}: Both source and target cursors are empty", sourceReader.getNamespace());
         this.isValid = true;
+        // Update cursor state
+        this.sourceCursorHasNext = sourceCursor.hasNext();
+        this.targetCursorHasNext = targetCursor.hasNext();
         return;
       }
       //
@@ -200,6 +209,9 @@ public class ValidateByDocCompare {
         batchCount++;
         logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
         logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
+        // Update cursor state
+        this.sourceCursorHasNext = sourceCursor.hasNext();
+        this.targetCursorHasNext = targetCursor.hasNext();
 
         if (!(sourceCursor.hasNext() && targetCursor.hasNext())) {
           logger.warn("{}: Source or target cursor is empty | Source cursor: {}, Target cursor: {}",
@@ -246,6 +258,9 @@ public class ValidateByDocCompare {
       // Handle the exception
       logger.error(e.getMessage(), e);
     } finally {
+      // Update cursor state
+      this.sourceCursorHasNext = sourceCursor.hasNext();
+      this.targetCursorHasNext = targetCursor.hasNext();
       logger.debug("{}: Shutting down executor service.", sourceReader.getNamespace());
       executor.shutdown();
     }

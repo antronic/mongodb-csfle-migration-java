@@ -273,9 +273,15 @@ public class ValidationManager {
 
           boolean isValid = validateByDocCompare.isValid();
           resultArr[3] = isValid ? "Match" : "Mismatch"; // result
-          resultArr[3] = hasError ? "Error" : resultArr[3];
-
+          resultArr[3] = hasError ? "Error" : resultArr[3]; // if there was an error, set result to "Error"
           resultArr[4] = String.valueOf(endTime - startTime); // tooks in ms
+
+          // Future feature ---
+          // Cursor state
+          // resultArr[4] = String.valueOf(validateByDocCompare.isSourceCursorHasNext()); // source cursor
+          // resultArr[5] = String.valueOf(validateByDocCompare.isTargetCursorHasNext()); // target cursor
+
+          // resultArr[6] = String.valueOf(endTime - startTime); // tooks in ms
 
           this.report.addData(resultArr);
 
