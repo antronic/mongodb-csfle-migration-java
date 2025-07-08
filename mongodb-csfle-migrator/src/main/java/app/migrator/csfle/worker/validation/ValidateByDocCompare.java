@@ -205,7 +205,7 @@ public class ValidateByDocCompare {
       }
       //
       // ==============================================================================
-      while (sourceCursor.hasNext() || targetCursor.hasNext()) {
+      while ((sourceCursor.hasNext() || targetCursor.hasNext()) && isValid) {
         batchCount++;
         logger.debug("{}: Source cursor => {}", sourceReader.getNamespace(), sourceCursor.hasNext());
         logger.debug("{}: Target cursor => {}", targetReader.getNamespace(), targetCursor.hasNext());
@@ -270,7 +270,7 @@ public class ValidateByDocCompare {
   private List<Document> retrieveByCursor(MongoCursor<Document> cursor) {
     List<Document> docs = new ArrayList<>();
     // Keep reading documents while the cursor is valid
-    while (isValid && docs.size() < batchSize && cursor.hasNext()) {
+    while (docs.size() < batchSize && cursor.hasNext()) {
       // Process each document as needed
       Document doc = cursor.next();
       docs.add(doc);
