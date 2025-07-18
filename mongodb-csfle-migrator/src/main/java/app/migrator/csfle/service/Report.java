@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.opencsv.CSVWriter;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
@@ -21,7 +22,8 @@ public class Report {
   private final String name;
 
   @Setter
-  public String[] headers;
+  @Getter
+  private String[] headers;
   @Setter
   public List<String[]> data = new ArrayList<>();
 

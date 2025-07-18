@@ -285,12 +285,12 @@ public class ValidateByDocCompare {
   private void validate(List<Document> _sourceDocs, List<Document> _targetDocs) {
     // Implement logic to read documents from source and target collections
     // For example, using MongoDB Java driver to fetch documents
-    logger.info("{}: Processed batch with {} source documents and {} target documents.",
+    logger.info("{}: Validating documents: {} <-> {}",
                 sourceReader.getNamespace(),
                 _sourceDocs.size(),
                 _targetDocs.size()
               );
-
+    // Compare the documents by their _id field and contents
     compareDocs(_sourceDocs, _targetDocs);
   }
 
@@ -305,24 +305,25 @@ public class ValidateByDocCompare {
     // Create a map of target documents by their _id for efficient lookups
     Map<Object, Document> targetById =
         targetDocs.stream().collect(Collectors.toMap(doc -> doc.get("_id"), Function.identity()));
-
+    //
+    // Initialize total documents examined
     String ns = sourceReader.getNamespace();
-
+    // Check if the source and target document counts match
     if (sourceDocs.size() != targetDocs.size()) {
       isValid = false;
       logger.warn("{}: Document count mismatch: source={}, target={}", ns, sourceDocs.size(), targetDocs.size());
     } else {
        // Compare each source document to its corresponding target document
-      for (Document src : sourceDocs) {
+      for (Document sourceDocument : sourceDocs) {
         this.totalDocsExamined++;
-        Object id = src.get("_id");
-        Document tgt = targetById.get(id);
-
-        if (tgt == null) {
+        Object id = sourceDocument.get("_id");
+        Document targetDocument = targetById.get(id);
+        //
+        if (targetDocument == null) {
           // Document exists in source but not in target
           isValid = false;
           logger.warn("{}: Missing document in target: _id={}", ns, id);
-        } else if (!normalize(src).equals(normalize(tgt))) {
+        } else if (!normalize(sourceDocument).equals(normalize(targetDocument))) {
           // Documents exist in both, but contents don't match
           isValid = false;
           logger.warn("{}: Mismatch at _id={}", ns, id);

@@ -15,6 +15,7 @@ import com.mongodb.MongoCredential;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
+import app.migrator.csfle.config.Configuration;
 import app.migrator.csfle.config.MongoDBConnectionConfiguration;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,36 +26,36 @@ public class MongoDBService implements AutoCloseable {
   @Setter
   @Getter
   private MongoClient client;
-  private final String uri;
-  private final MongoDBConnectionConfiguration configuration;
+  private final String mongoUri;
+  private final Configuration configuration;
+  private final MongoDBConnectionConfiguration connectionConfiguration;
   @Getter
   private MongoClientSettings.Builder mongoClientSettingsBuilder = MongoClientSettings.builder();
 
-  // public MongoDBService(MongoClient client) {
-  //   this.client = client;
-  //   this.uri = null;
-  // }
-
-  public MongoDBService(MongoDBConnectionConfiguration configuration) {
+  public MongoDBService(Configuration configuration, MongoDBConnectionConfiguration connectionConfiguration) {
     this.configuration = configuration;
-    this.uri = this.configuration.getUri();
+    // Set the connection configuration
+    this.connectionConfiguration = connectionConfiguration;
+    this.mongoUri = this.connectionConfiguration.getUri();
   }
 
-  public MongoDBService(MongoDBConnectionConfiguration configuration, MongoClientSettings.Builder mongoClientSettingsBuilder) {
-    this.uri = configuration.getUri();
+  public MongoDBService(Configuration configuration, MongoDBConnectionConfiguration connectionConfiguration, MongoClientSettings.Builder mongoClientSettingsBuilder) {
     this.configuration = configuration;
+    // Set the connection configuration
+    this.connectionConfiguration = connectionConfiguration;
+    this.mongoUri = this.connectionConfiguration.getUri();
     this.mongoClientSettingsBuilder = mongoClientSettingsBuilder;
   }
 
   private SSLContext setupSSLContext() {
     try {
       SSLContext sslContext = SSLContextFactory.create(
-          configuration.getTlsKeyStorePath(),
-          configuration.getTlsKeyStorePassword(),
-          configuration.getTlsTrustStorePath(),
-          configuration.getTlsTrustStorePassword(),
-          configuration.getTlsKeyStoreType(),
-          configuration.getTlsTrustStoreType());
+          this.connectionConfiguration.getTlsKeyStorePath(),
+          this.connectionConfiguration.getTlsKeyStorePassword(),
+          this.connectionConfiguration.getTlsTrustStorePath(),
+          this.connectionConfiguration.getTlsTrustStorePassword(),
+          this.connectionConfiguration.getTlsKeyStoreType(),
+          this.connectionConfiguration.getTlsTrustStoreType());
       logger.info("SSL context created successfully");
 
       return sslContext;
@@ -65,29 +66,17 @@ public class MongoDBService implements AutoCloseable {
   }
 
   private MongoCredential setupCredential() {
-    MongoDBConnectionConfiguration config = this.configuration;
+    MongoDBConnectionConfiguration config = this.connectionConfiguration;
     MongoCredential credential = null;
 
     if (config.getAuthMechanism() != null) {
       switch (config.getAuthMechanism()) {
         case "SCRAM-SHA-1":
         case "SCRAM-SHA-256":
-          // credential = MongoCredential.createScramSha256Credential(
-          //     config.getUsername(),
-          //     config.getAuthSource(),
-          //     config.getPassword().toCharArray());
           break;
         case "MONGODB-X509":
           logger.info("Using MONGODB-X509 authentication mechanism");
           credential = MongoCredential.createMongoX509Credential();
-              // .withMechanism(AuthenticationMechanism.MONGODB_X509)
-              // .withMechanismProperty("TLS", "true")
-              // .withMechanismProperty("TLS_INSECURE", "true")
-              // .withMechanismProperty("TLS_TRUST_STORE_PATH", config.getTlsTrustStorePath())
-              // .withMechanismProperty("TLS_TRUST_STORE_PASSWORD", config.getTlsTrustStorePassword())
-              // .withMechanismProperty("TLS_KEY_STORE_PATH", config.getTlsKeyStorePath())
-              // .withMechanismProperty("TLS_KEY_STORE_PASSWORD", config.getTlsKeyStorePassword())
-            // .withMechanismProperty("AUTH_SOURCE", config.getAuthSource());
           break;
         default:
           throw new IllegalArgumentException("Unsupported authentication mechanism: " + config.getAuthMechanism());
@@ -98,30 +87,41 @@ public class MongoDBService implements AutoCloseable {
   }
 
   public MongoClient setup() {
-    if (uri == null || uri.isEmpty()) {
+    if (this.mongoUri == null || this.mongoUri.isEmpty()) {
       throw new IllegalArgumentException("URI must not be null or empty");
     }
     //
     // Setup MongoClientSettings
     this.mongoClientSettingsBuilder
-        .applyConnectionString(new ConnectionString(uri))
+        .applicationName("MongoDB CSFLE Migrator - Service")
+        .applyConnectionString(new ConnectionString(this.mongoUri))
+        .applyToClusterSettings(settings -> settings
+            .applyConnectionString(new ConnectionString(this.mongoUri))
+            .serverSelectionTimeout(this.configuration.getWorker().getServerSelectionTimeoutMs(), TimeUnit.MILLISECONDS)
+        )
         .applyToSslSettings(ssl -> {
-          if (configuration.isTls()) {
+          if (this.connectionConfiguration.isTls()) {
             ssl.enabled(true);
             ssl.context(setupSSLContext());
           } else {
             ssl.enabled(false);
           }
         })
-        .applyToClusterSettings(settings -> settings
-            .applyConnectionString(new ConnectionString(uri)))
-            .timeout(30, TimeUnit.MINUTES)
-        .applyToConnectionPoolSettings(settings -> settings
-            .maxSize(10)
-            .minSize(1));
+        .applyToConnectionPoolSettings(
+            builder -> builder
+              .minSize(0)
+              .maxSize(10)
+              .maxWaitTime(this.configuration.getWorker().getMaxWaitTimeMs(), TimeUnit.MILLISECONDS)
+            )
+        .applyToSocketSettings(settings -> settings
+            .connectTimeout(this.configuration.getWorker().getSocketConnectionTimeoutMs(), TimeUnit.MILLISECONDS)
+            .readTimeout(this.configuration.getWorker().getSocketReadTimeoutMs(), TimeUnit.MILLISECONDS)
+          )
+        .retryWrites(true)
+        .retryReads(true);
     //
     // Set credential if authentication is required
-    if (configuration.getAuthMechanism() != null) {
+    if (this.connectionConfiguration.getAuthMechanism() != null) {
       MongoCredential credential = setupCredential();
       if (credential != null) {
         this.mongoClientSettingsBuilder.credential(credential);

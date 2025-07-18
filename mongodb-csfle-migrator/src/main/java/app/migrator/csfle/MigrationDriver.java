@@ -132,9 +132,9 @@ public class MigrationDriver {
     // Initialize source and target MongoDB clients
     //
     // Initialize source MongoDB client
-    sourceService = new MongoDBService(config.getSourceMongoDB());
+    sourceService = new MongoDBService(config, config.getSourceMongoDB());
     // Initialize target MongoDB client with CSFLE
-    targetService = new MongoDBService(config.getTargetMongoDB(), targetMongoClientBuilder);
+    targetService = new MongoDBService(config, config.getTargetMongoDB(), targetMongoClientBuilder);
     //
     // Setup source and target MongoDB services
     sourceService.setup();

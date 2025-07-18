@@ -97,10 +97,11 @@ public class MongoReader {
       MongoCursor<Document> cursor = mongoClient
           .getDatabase(database)
           .getCollection(collection)
-          .find()
-          .sort(new Document("_id", 1))
-          .batchSize(batchSize)
-          .cursor();
+            .find()
+            .sort(new Document("_id", 1))
+              .noCursorTimeout(true)
+              .batchSize(batchSize)
+              .cursor();
 
       return cursor;
     } catch (Exception e) {

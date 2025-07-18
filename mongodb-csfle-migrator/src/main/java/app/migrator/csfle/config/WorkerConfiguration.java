@@ -13,6 +13,11 @@ public class WorkerConfiguration {
   private int maxBatchWaitTime = Integer.MAX_VALUE; // in milliseconds
   private int retryDelay = 1000; // in milliseconds
   private boolean enableLogging = true;
+  // Timeout
+  private long socketConnectionTimeoutMs = 10000; // in milliseconds
+  private long socketReadTimeoutMs = 60000; // in milliseconds
+  private long serverSelectionTimeoutMs = 30000; // in milliseconds
+  private long maxWaitTimeMs = 30000; // in milliseconds
   //
   // Read configuration
   // Type of read operation (cursor or skip)

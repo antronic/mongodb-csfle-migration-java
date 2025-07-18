@@ -7,7 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Phaser;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,7 +57,9 @@ public class ValidationDriver {
   //
   // Latch to synchronize completion of all validation tasks
   private CountDownLatch latch;
-  private Phaser phaser;
+  //
+  // Flag to enable/disable polling for validation status updates
+  private boolean isPollingEnabled = true;
 
   /**
    * Creates a new ValidationDriver with specified configuration and validation strategy.
@@ -100,16 +103,14 @@ public class ValidationDriver {
         }
       }
 
+      // pollingUpdate(); // Start polling for validation status updates
       // Wait for all tasks to complete
       logger.info("Waiting for all validation tasks to complete. Latch count: {}", this.latch.getCount());
-      boolean completed = this.latch.await(30, TimeUnit.MINUTES); // Add timeout to prevent infinite wait
+      // Wait for all validation tasks to finish
+      this.latch.await();
+      this.isPollingEnabled = false; // Disable polling after tasks complete
 
-      if (!completed) {
-          logger.error("Timeout waiting for validation tasks to complete! Remaining tasks: {}", this.latch.getCount());
-      } else {
-          logger.info("All validation tasks completed successfully.");
-      }
-
+      logger.info("All validation tasks completed successfully.");
     } catch (InterruptedException e) {
       logger.error("Error while waiting for validation tasks to complete: {}", e.getMessage());
       Thread.currentThread().interrupt(); // Restore interrupted state
@@ -117,7 +118,7 @@ public class ValidationDriver {
     } finally {
       // Verify task completion before generating report
       workerManager.verifyAllTasksCompleted();
-
+      // Stop the polling for validation status updates
       logger.debug("All tasks completed, generating report and cleaning up resources");
       // Generate the validation report with results
       try {
@@ -200,9 +201,9 @@ public class ValidationDriver {
     MongoClientSettings.Builder targetMongoClientBuilder = csfleClient.getMongoClientSettingsBuilder();
     //
     // Initialize source MongoDB client (standard, without CSFLE)
-    sourceService = new MongoDBService(config.getSourceMongoDB());
+    sourceService = new MongoDBService(config, config.getSourceMongoDB());
     // Initialize target MongoDB client with CSFLE capabilities
-    targetService = new MongoDBService(config.getTargetMongoDB(), targetMongoClientBuilder);
+    targetService = new MongoDBService(config, config.getTargetMongoDB(), targetMongoClientBuilder);
     //
     // Setup source and target MongoDB service connections
     sourceService.setup();
@@ -285,6 +286,58 @@ public class ValidationDriver {
             break;
         }
     }
+  }
+
+  /**
+   *  Polls for validation status updates at regular intervals.
+   *
+   * @throws RuntimeException if there is an error during client setup
+   */
+  private void pollingUpdate() throws InterruptedException {
+    CountDownLatch pollingLatch = new CountDownLatch(1);
+    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    //
+    // Start a scheduled task to log validation status every 5 seconds
+    // This will run until polling is disabled or the latch is counted down
+    try {
+      scheduler.scheduleAtFixedRate(() -> {
+        if (!this.isPollingEnabled) {
+          logger.info("Polling stopped.");
+          pollingLatch.countDown();  // signal wait
+          return;
+        }
+        logger.info("Current validation status: {} tasks remaining", this.latch.getCount());
+        this.printReport();
+      }, 0, 10, TimeUnit.SECONDS);
+      //
+      // Wait until polling is disabled
+      pollingLatch.await();
+    } finally {
+      scheduler.shutdownNow();
+    }
+  }
+
+  private void printReport() {
+    ArrayList<String> content = new ArrayList<>();
+
+    String header = Arrays.stream(this.report.getHeaders())
+      .map(String::toUpperCase)
+      .collect(Collectors.joining(" | "));
+
+    content.add(header);
+
+    this.report.data
+      .forEach(row -> {
+        String rowString = Arrays.stream(row)
+          .map(Object::toString)
+          .collect(Collectors.joining(" | "));
+        content.add(rowString);
+      });
+
+    logger.info(
+      BoxPrinter.generateContent(content)
+    );
+    // logger.info("Total validation tasks: {}", this.totalTasks);
   }
 
   /**

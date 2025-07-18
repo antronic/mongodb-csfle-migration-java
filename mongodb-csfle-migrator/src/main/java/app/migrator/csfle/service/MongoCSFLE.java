@@ -118,15 +118,6 @@ public class MongoCSFLE {
     String keyStoreType = configuration.getEncryption().getKeyStoreType();
     String trustStoreType = configuration.getEncryption().getTrustStoreType();
 
-    // logger.info(
-    //     "KeyStore Path: " + keyStorePath +
-    //     // "\nKeyStore Password: " + keyStorePassword +
-    //     "\nTrustStore Path: " + trustStorePath +
-    //     "\nTrustStore Password: " + trustStorePassword +
-    //     "\nKeyStore Type: " + keyStoreType +
-    //     "\nTrustStore Type: " + trustStoreType
-    // );
-
     SSLContext sslContext = SSLContextFactory.create(
         keyStorePath,
         keyStorePassword,
@@ -140,10 +131,6 @@ public class MongoCSFLE {
         .invalidHostNameAllowed(true)
         .context(sslContext)
         .build();
-
-    // StreamFactoryFactory sff = NettyStreamFactoryFactory.builder()
-    //   .sslContext(sslContext)
-    //   .build();
 
     Map<String, SSLContext> sslContextMap = new HashMap<>();
     sslContextMap.put(
@@ -189,16 +176,23 @@ public class MongoCSFLE {
             //
             // Configure through the connection string instead (with w parameter)
             // .writeConcern(WriteConcern.W1)
+            .applicationName("MongoDB CSFLE Migrator - CSFLE")
             .applyToConnectionPoolSettings(
-                builder -> {
-                  builder.minSize(0);
-                  builder.maxSize(10);
-                })
-            .applyToSocketSettings(
-                builder -> {
-                  builder.connectTimeout(10, TimeUnit.SECONDS);
-                  builder.readTimeout(10, TimeUnit.SECONDS);
-                })
+                builder -> builder
+                  .minSize(0)
+                  .maxSize(10)
+                  .maxWaitTime(this.configuration.getWorker().getMaxWaitTimeMs(), TimeUnit.MILLISECONDS)
+                )
+            .applyToSocketSettings(settings -> settings
+                .connectTimeout(this.configuration.getWorker().getSocketConnectionTimeoutMs(), TimeUnit.MILLISECONDS)
+                .readTimeout(this.configuration.getWorker().getSocketReadTimeoutMs(), TimeUnit.MILLISECONDS)
+              )
+            .applyToClusterSettings(settings -> settings
+                .serverSelectionTimeout(this.configuration.getWorker().getServerSelectionTimeoutMs(), TimeUnit.MILLISECONDS)
+                .applyConnectionString(new ConnectionString(this.mongoUri))
+            )
+            .retryWrites(true)
+            .retryReads(true)
             .autoEncryptionSettings(autoEncryptionSettings);
 
     Long kmipKeyExpiration = this.autoEncryptionSettings.getKeyExpiration(TimeUnit.SECONDS);

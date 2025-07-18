@@ -143,7 +143,7 @@ class GenerateDekIdCommand implements Runnable {
 
         String dekId = null;
 
-        try (MongoDBService mongoService = new MongoDBService(config.getTargetMongoDB())) {
+        try (MongoDBService mongoService = new MongoDBService(config, config.getTargetMongoDB())) {
             mongoService.setup();
             MongoCSFLE mongoCSFLE = new MongoCSFLE(config.getTargetMongoDB().getUri(), config);
             mongoCSFLE
