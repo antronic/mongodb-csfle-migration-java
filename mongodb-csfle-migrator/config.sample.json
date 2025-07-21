@@ -38,7 +38,12 @@
     "maxBatchSize": 1000,
     "maxThreads": 10,
     "maxQueueSize": 10000,
-    "readOperationType": "cursor"
+    "readOperationType": "cursor",
+
+    "socketConnectionTimeoutMs": 10000,
+    "socketReadTimeoutMs": 0,
+    "serverSelectionTimeoutMs": 10000,
+    "maxWaitTimeMs": 10000
   },
   "app": {
     "logOptions": {

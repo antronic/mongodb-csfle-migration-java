@@ -1,6 +1,10 @@
 package app.migrator.csfle;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,12 +73,33 @@ public class CSFLEMigratorApp implements Runnable {
     }
 
     public static void main(String[] args) {
-        // Configuration configuration = Configuration.load("config.json");
-        // Log4jConfig.configureLogging(configuration);
-        // Log4jConfig.main(args);
+        String version = "undefined";
+        Properties properties = System.getProperties();
+        try (InputStream input = CSFLEMigratorApp.class.getClassLoader()
+            .getResourceAsStream("version.properties")) {
+            if (input != null) {
+                properties.load(input);
+
+                version = properties.getProperty("version");
+                System.out.println("Version: " + version);
+            } else {
+                System.err.println("Version properties file not found.");
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading version properties: " + e.getMessage());
+        }
         //
         System.out.println();
-        BoxPrinter.print("MongoDB CSFLE Migrator");
+
+        String content = BoxPrinter.generateContent(
+            new ArrayList<>(
+                // Show version from pom.xml
+                Arrays.asList(
+                    "\"MongoDB CSFLE Migrator\"",
+                    "".concat(version)
+            ))
+        );
+        System.out.println(content);
         System.out.println();
         int exitCode = new CommandLine(new CSFLEMigratorApp())
             .execute(args);

@@ -85,7 +85,10 @@ TARGET_OUTPUT_TMP_FOLDER="$TARGET_OUTPUT_FOLDER/.tmp"
 7z a -tzip -mx=9 -p"$PASSWORD" -mem=AES256 $TARGET_OUTPUT_TMP_FOLDER/source_code.zip $TARGET_OUTPUT_TMP_FOLDER/source_code.7z
 # 7z a -tzip -mx=9 -p"$PASSWORD" -mem=AES256 $TARGET_OUTPUT_TMP_FOLDER/docs.zip $TARGET_DOC_FOLDER
 
-7z a -tzip -mx=9 -mem=AES256 $TARGET_OUTPUT_FOLDER/sample-mongodb-csfle-migrator_app.zip \
+DATE_TIME=$(date +%Y-%m-%d_%H-%M-%S)
+FILE_NAME="sample-mongodb-csfle-migrator_app_$DATE_TIME"
+
+7z a -tzip -mx=9 -mem=AES256 $TARGET_OUTPUT_FOLDER/$FILE_NAME \
 $TARGET_OUTPUT_TMP_FOLDER/sample-test-data.zip \
 $TARGET_OUTPUT_TMP_FOLDER/source_code.zip \
 $TARGET_OUTPUT_TMP_FOLDER/docs.zip \

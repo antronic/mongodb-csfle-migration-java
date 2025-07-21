@@ -96,6 +96,11 @@ public class Configuration {
       defaultWorker.setRetryDelay(userWorker.getRetryDelay());
       defaultWorker.setEnableLogging(userWorker.isEnableLogging());
       defaultWorker.setReadOperationType(userWorker.getReadOperationType());
+
+      defaultWorker.setSocketConnectionTimeoutMs(userWorker.getSocketConnectionTimeoutMs());
+      defaultWorker.setSocketReadTimeoutMs(userWorker.getSocketReadTimeoutMs());
+      defaultWorker.setServerSelectionTimeoutMs(userWorker.getServerSelectionTimeoutMs());
+      defaultWorker.setMaxWaitTimeMs(userWorker.getMaxWaitTimeMs());
     }
   }
 

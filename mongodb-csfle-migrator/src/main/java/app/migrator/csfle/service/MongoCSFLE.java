@@ -145,6 +145,7 @@ public class MongoCSFLE {
     // Set up the KMS providers
     Map<String, Object> extraOptions = new HashMap<>();
     extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
+    extraOptions.put("cryptSharedLibRequired", true);
 
     this.autoEncryptionSettings =
         AutoEncryptionSettings.builder()
@@ -157,10 +158,10 @@ public class MongoCSFLE {
             //           new ConnectionString(this.mongoUri)
             //         )
             //         .build())
+            .extraOptions(extraOptions)
             .keyVaultNamespace(keyVaultNamespace)
             .kmsProviders(kmsProviders)
             .schemaMap(schemaMap)
-            .extraOptions(extraOptions)
             .kmsProviderSslContextMap(this.createKmipSSLContextMap())
             .keyExpiration(
               this.configuration
