@@ -19,6 +19,9 @@ const IS_REDACTED = true
 // List of databases to exclude from inventory assessment
 const EXCLUDED_DATABASES = ['admin', 'local', 'config']
 // ==================================================================
+// List of collection to exclude from inventory assessment
+const EXCLUDED_COLLECTIONS = ['system.indexes', 'system.profile', 'system.views']
+// ==================================================================
 //
 /*
 [
@@ -60,6 +63,10 @@ function getEstimatedCollectionDocsSizes() {
   for (const dbInfo of targetDatabases) {
     const currentDatabase = { db: dbInfo.db, collections: {} }
     for (const [collName] of Object.entries(dbInfo.collections)) {
+      if (EXCLUDED_COLLECTIONS.includes(collName)) {
+        currentDatabase.collections[collName] = 'Skipped'
+        continue // Skip excluded collections
+      }
       const estimatedDocs = db.getSiblingDB(dbInfo.db).getCollection(collName).estimatedDocumentCount()
       currentDatabase.collections[collName] = estimatedDocs
     }
@@ -78,6 +85,10 @@ function getActualCollectionDocsSize() {
   for (const dbInfo of targetDatabases) {
     const currentDatabase = { db: dbInfo.db, collections: {} }
     for (const [collName] of Object.entries(dbInfo.collections)) {
+      if (EXCLUDED_COLLECTIONS.includes(collName)) {
+        currentDatabase.collections[collName] = 'Skipped'
+        continue // Skip excluded collections
+      }
       const actualDocs = db.getSiblingDB(dbInfo.db).getCollection(collName).countDocuments()
       currentDatabase.collections[collName] = actualDocs
     }
@@ -109,7 +120,7 @@ function generateCSV(data) {
   // Format the data
   for (const dbInfo of _data) {
     for (const [collName, docCount] of Object.entries(dbInfo.collections)) {
-      const sizeClass = docCount > BIG_COLLECTION_THRESHOLD ? 'big' : 'small'
+      const sizeClass = docCount === 'Skipped' ? 'Skipped' : (docCount > BIG_COLLECTION_THRESHOLD ? 'big' : 'small')
       const row = [dbInfo.db, collName, docCount, sizeClass]
       csvRows.push(row.join(','))
     }
@@ -119,15 +130,17 @@ function generateCSV(data) {
 //
 //
 function createMaskingData(data) {
-  console.log(data)
+  // console.log(data)
   const maskingData = []
   let dbCount = 0
 
   data.forEach((dbInfo) => {
     let collCount = 0
     const maskedDatabaseName = `db_${dbCount++}`
-    const maskedCollections = Object.keys(dbInfo.collections).map((collName) => {
-      return `${maskedDatabaseName}_coll_${collCount++}`
+    const maskedCollections = {}
+
+    Object.keys(dbInfo.collections).forEach((collName) => {
+      maskedCollections[`coll_${collCount++}`] = dbInfo.collections[collName]
     })
     maskingData.push({ db: maskedDatabaseName, collections: maskedCollections })
   })
